@@ -1,0 +1,55 @@
+; dcsserverbot.ini.sample
+
+; ============================================================
+; THIS FILE CONTAINS A SAMPLE CONFIGURATION FOR DCSSERVERBOT.
+; COPY THIS FILE TO dcsserverbot.ini AND CHANGE THE VALUES
+; IN THERE TO FIT YOUR NEEDS.
+; ============================================================
+
+[BOT]
+OWNER = <tbd>
+TOKEN = <tbd>
+DATABASE_URL = postgres://user:pass@hostname/dbname
+; MASTER = false in case this is an agent installation
+MASTER = true
+AUTOUPDATE = true
+; Recommended for better error analysis
+LOGLEVEL = DEBUG
+; Optional, audit channel for special events
+AUDIT_CHANNEL = 123456789012345678
+; Optional, load optional plugins
+OPT_PLUGINS = scheduler, admin, motd, gamemaster, cloud
+
+[ROLES]
+Admin = Admin
+DCS Admin = DCS Admin
+DCS = DCS
+GameMaster = GameMaster
+
+[DCS]
+DCS_INSTALLATION = %%ProgramFiles%%\\Eagle Dynamics\\DCS World OpenBeta Server
+SERVER_USER = Admin
+
+; Only needed if your installation is not named DCS (stable installation).
+; If you use stable, just add DCS_HOME and the other parameters to the
+; DCS-category above.
+[DCS.openbeta_server]
+DCS_HOST = 127.0.0.1
+DCS_PORT = 6666
+DCS_HOME = %%USERPROFILE%%\\Saved Games\\DCS.openbeta_server
+; These channels have to be replaced with the dedicated discord channel IDs (see README)
+CHAT_CHANNEL = 123456789012345678
+STATUS_CHANNEL = 123456789012345678
+ADMIN_CHANNEL = 123456789012345678
+
+; Only needed if you have more than one server to be controlled by the bot
+; "instance2" is in this example the instance name of the server that you would use with -w
+[instance2]
+DCS_HOST = 127.0.0.1
+DCS_PORT = 6667
+DCS_HOME = %%USERPROFILE%%\\Saved Games\\instance2
+; You need to move the server.cfg into your Saved Games folder. I would recommend to rename it to SRS.cfg.
+; These channels have to be replaced with the dedicated discord channel IDs (see README)
+CHAT_CHANNEL = 876543210987654321
+STATUS_CHANNEL = 876543210987654321
+ADMIN_CHANNEL = 876543210987654321

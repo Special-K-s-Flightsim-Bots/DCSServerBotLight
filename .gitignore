@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.db
+*.log*
+config/dcsserverbot.ini
+config/*.json
+config/*.lua
+Scripts/net/DCSServerBot/DCSServerBotConfig.lua
+*.csv
+/venv/
+/.idea/
+/test/
+/reports/
+/export/
+/plugins/test/

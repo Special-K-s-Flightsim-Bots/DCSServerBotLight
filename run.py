@@ -1,0 +1,350 @@
+from __future__ import annotations
+import asyncio
+import discord
+import logging
+import os
+import platform
+import shutil
+import string
+import subprocess
+import sys
+from core import utils, Server, DCSServerBot, Status, DBConnection
+from contextlib import closing
+from discord import SelectOption
+from discord.ext import commands
+from install import Install
+from logging.handlers import RotatingFileHandler
+from os import path
+from typing import Optional, TYPE_CHECKING
+from version import __version__
+
+if TYPE_CHECKING:
+    from core import Plugin
+
+
+# Set the bot version (not externally configurable)
+BOT_VERSION = __version__[:__version__.rfind('.')]
+SUB_VERSION = int(__version__[__version__.rfind('.') + 1:])
+
+LOGLEVEL = {
+    'DEBUG': logging.DEBUG,
+    'INFO': logging.INFO,
+    'WARNING': logging.WARNING,
+    'ERROR': logging.ERROR,
+    'CRITICAL': logging.CRITICAL,
+    'FATAL': logging.FATAL
+}
+
+# git repository
+GIT_REPO_URL = 'https://github.com/Special-K-s-Flightsim-Bots/DCSServerBotLight.git'
+
+# Database Configuration
+TABLES_SQL = 'sql/tables.sql'
+UPDATES_SQL = 'sql/update_{}.sql'
+
+
+class Main:
+
+    def __init__(self):
+        self.config = self.read_config()
+        self.log = self.init_logger()
+        self.log.info(f'DCSServerBotLight v{BOT_VERSION}.{SUB_VERSION} starting up ...')
+        if self.config.getboolean('BOT', 'AUTOUPDATE') and self.upgrade():
+            self.log.warning('- Restart needed => exiting.')
+            exit(-1)
+        self.db_version = None
+        self.init_db()
+        utils.dcs.desanitize(self)
+        self.install_hooks()
+        self.bot: DCSServerBot = self.init_bot()
+        self.add_commands()
+
+    def init_logger(self):
+        # Initialize the logger
+        log = logging.getLogger(name='dcsserverbot')
+        log.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(fmt=u'%(asctime)s.%(msecs)03d %(levelname)s\t%(threadName)s\t%(message)s',
+                                      datefmt='%Y-%m-%d %H:%M:%S')
+        fh = RotatingFileHandler('dcsserverbot.log', encoding='utf-8',
+                                 maxBytes=int(self.config['BOT']['LOGROTATE_SIZE']),
+                                 backupCount=int(self.config['BOT']['LOGROTATE_COUNT']))
+        if 'LOGLEVEL' in self.config['BOT']:
+            fh.setLevel(LOGLEVEL[self.config['BOT']['LOGLEVEL']])
+        else:
+            fh.setLevel(logging.DEBUG)
+        fh.setFormatter(formatter)
+        fh.doRollover()
+        log.addHandler(fh)
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        ch.setFormatter(formatter)
+        log.addHandler(ch)
+        return log
+
+    @staticmethod
+    def read_config():
+        config = utils.config
+        config['BOT']['VERSION'] = BOT_VERSION
+        config['BOT']['SUB_VERSION'] = str(SUB_VERSION)
+        return config
+
+    def init_db(self):
+        # Initialize the database
+        with DBConnection() as cursor:
+            # check if there is an old database already
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('version', 'plugins')")
+            tables = [x[0] for x in cursor.fetchall()]
+            # initial setup
+            if len(tables) == 0:
+                self.log.info('Initializing Database ...')
+                with open(TABLES_SQL) as tables_sql:
+                    for query in tables_sql.readlines():
+                        self.log.debug(query.rstrip())
+                        cursor.execute(query.rstrip())
+                self.log.info('Database initialized.')
+            else:
+                cursor.execute('SELECT version FROM version')
+                self.db_version = cursor.fetchone()[0]
+                while path.exists(UPDATES_SQL.format(self.db_version)):
+                    self.log.info('Updating Database {} ...'.format(self.db_version))
+                    with open(UPDATES_SQL.format(self.db_version)) as tables_sql:
+                        for query in tables_sql.readlines():
+                            self.log.debug(query.rstrip())
+                            cursor.execute(query.rstrip())
+                    cursor.execute('SELECT version FROM version')
+                    self.db_version = cursor.fetchone()[0]
+                    self.log.info(f"Database updated to {self.db_version}.")
+
+    def install_hooks(self):
+        self.log.info('- Configure DCS installations ...')
+        for server_name, installation in utils.findDCSInstallations():
+            if installation not in self.config:
+                continue
+            self.log.info(f'  => {installation}')
+            dcs_path = os.path.expandvars(self.config[installation]['DCS_HOME'] + '\\Scripts')
+            if not path.exists(dcs_path):
+                os.mkdir(dcs_path)
+            ignore = None
+            if path.exists(dcs_path + r'\net\DCSServerBot'):
+                self.log.debug('  - Updating Hooks ...')
+                shutil.rmtree(dcs_path + r'\net\DCSServerBot')
+                ignore = shutil.ignore_patterns('DCSServerBotConfig.lua.tmpl')
+            else:
+                self.log.debug('  - Installing Hooks ...')
+            shutil.copytree('./Scripts', dcs_path, dirs_exist_ok=True, ignore=ignore)
+            try:
+                with open(r'Scripts/net/DCSServerBot/DCSServerBotConfig.lua.tmpl', 'r') as template:
+                    with open(dcs_path + r'\net\DCSServerBot\DCSServerBotConfig.lua', 'w') as outfile:
+                        for line in template.readlines():
+                            s = line.find('{')
+                            e = line.find('}')
+                            if s != -1 and e != -1 and (e - s) > 1:
+                                param = line[s + 1:e].split('.')
+                                if len(param) == 2:
+                                    if param[0] == 'BOT' and param[1] == 'HOST' and self.config[param[0]][param[1]] == '0.0.0.0':
+                                        line = line.replace('{' + '.'.join(param) + '}', '127.0.0.1')
+                                    else:
+                                        line = line.replace('{' + '.'.join(param) + '}', self.config[param[0]][param[1]])
+                                elif len(param) == 1:
+                                    line = line.replace('{' + '.'.join(param) + '}', self.config[installation][param[0]])
+                            outfile.write(line)
+            except KeyError as k:
+                self.log.error(
+                    f'! Your dcsserverbot.ini contains errors. You must set a value for {k}. See README for help.')
+                raise k
+            self.log.debug('  - Hooks installed into {}.'.format(installation))
+
+    def init_bot(self):
+        def get_prefix(client, message):
+            prefixes = [self.config['BOT']['COMMAND_PREFIX']]
+            # Allow users to @mention the bot instead of using a prefix
+            return commands.when_mentioned_or(*prefixes)(client, message)
+
+        # Create the Bot
+        return DCSServerBot(version=BOT_VERSION,
+                            sub_version=SUB_VERSION,
+                            command_prefix=get_prefix,
+                            description='Interact with DCS World servers',
+                            owner_id=int(self.config['BOT']['OWNER']),
+                            case_insensitive=True,
+                            intents=discord.Intents.all(),
+                            log=self.log,
+                            config=self.config,
+                            help_command=None)
+
+    async def run(self):
+        self.log.info('- Starting {}-Node on {}'.format('Master' if self.config.getboolean(
+            'BOT', 'MASTER') is True else 'Agent', platform.node()))
+        async with self.bot:
+            await self.bot.start(self.config['BOT']['TOKEN'], reconnect=True)
+
+    def add_commands(self):
+
+        @self.bot.command(description='Reloads plugins', aliases=['plugins'])
+        @utils.has_role('Admin')
+        @commands.guild_only()
+        async def reload(ctx, cog: Optional[str] = None):
+            if cog:
+                cogs = [cog.lower()]
+            else:
+                plugins = list(self.bot.cogs.values())
+                embed = discord.Embed(title=f'Installed Plugins ({platform.node()})', color=discord.Color.blue())
+                names = versions = ''
+                for plugin in plugins:  # type: Plugin
+                    names += string.capwords(plugin.plugin_name) + '\n'
+                    versions += plugin.plugin_version + '\n'
+                embed.add_field(name='Name', value=names)
+                embed.add_field(name='Version', value=versions)
+                embed.add_field(name='▬' * 20, value='_ _', inline=False)
+                embed.add_field(name='Bot Version', value=f"v{self.bot.version}.{self.bot.sub_version}")
+                embed.add_field(name='_ _', value='_ _')
+                embed.add_field(name='DB Version', value=f"{self.db_version}")
+                cogs = await utils.selection(ctx, placeholder="Select the plugin(s) to reload",
+                                             embed=embed,
+                                             options=[
+                                                 SelectOption(
+                                                     label=string.capwords(x.plugin_name),
+                                                     value=x.plugin_name) for x in plugins
+                                             ],
+                                             max_values=len(plugins))
+                if not cogs:
+                    return
+            self.read_config()
+            for cog in cogs:
+                try:
+                    await self.bot.reload(cog)
+                    await ctx.send(f'Plugin {string.capwords(cog)} reloaded.')
+                except commands.ExtensionNotLoaded:
+                    await ctx.send(f'Plugin {string.capwords(cog)} not found.')
+
+        @self.bot.command(description='Rename a server')
+        @utils.has_role('Admin')
+        @commands.guild_only()
+        async def rename(ctx, *args):
+            server: Server = await self.bot.get_server(ctx)
+            if server:
+                old_name = server.name
+                new_name = ' '.join(args)
+                if len(new_name) == 0:
+                    await ctx.send(f"Usage: {self.config['BOT']['COMMAND_PREFIX']}rename <new server name>")
+                    return
+                if server.status not in [Status.RUNNING, Status.PAUSED]:
+                    if await utils.yn_question(ctx, 'Are you sure to rename server '
+                                                    '"{}" to "{}"?'.format(old_name, new_name)) is True:
+                        server.rename(old_name, new_name, True)
+                        self.bot.servers[new_name] = server
+                        del self.bot.servers[old_name]
+                        await ctx.send('Server has been renamed.')
+                        await self.bot.audit(
+                            f'User {ctx.message.author.display_name} renamed DCS server "{old_name}" to "{new_name}".',
+                            user=ctx.message.author)
+                else:
+                    await ctx.send('Please stop server "{}" before renaming!'.format(old_name))
+
+        @self.bot.command(description='Unregisters a server from this node')
+        @utils.has_role('Admin')
+        @commands.guild_only()
+        async def unregister(ctx):
+            server: Server = await self.bot.get_server(ctx)
+            if server:
+                if server.status == Status.SHUTDOWN:
+                    if await utils.yn_question(ctx, 'Are you sure to unregister server "{}" from '
+                                                    'node "{}"?'.format(server.name, platform.node())) is True:
+                        del self.bot.servers[server.name]
+                        await ctx.send('Server {} unregistered.'.format(server.name))
+                        await self.bot.audit(f"User {ctx.message.author.display_name} unregistered DCS server "
+                                             f"\"{server.name}\" from node {platform.node()}.",
+                                             user=ctx.message.author)
+                    else:
+                        await ctx.send('Aborted.')
+                else:
+                    await ctx.send('Please shut down server "{}" before unregistering!'.format(server.name))
+
+        @self.bot.command(description='Upgrades the bot')
+        @utils.has_role('Admin')
+        @commands.guild_only()
+        async def upgrade(ctx):
+            if await utils.yn_question(ctx, 'The bot will check and upgrade to the latest version, if available.\n'
+                                            'Are you sure?'):
+                await ctx.send('Checking for a bot upgrade ...')
+                if self.upgrade():
+                    await ctx.send('The bot has upgraded itself.')
+                    running = False
+                    for server_name, server in self.bot.servers.items():
+                        if server.status != Status.SHUTDOWN:
+                            running = True
+                    if running and await utils.yn_question(ctx, 'It is recommended to shut down all running servers.\n'
+                                                                'Would you like to shut them down now?'):
+                        for server_name, server in self.bot.servers.items():
+                            await server.shutdown()
+                    await ctx.send('The bot is now restarting itself.\nAll servers will be launched according to their '
+                                   'scheduler configuration on bot start.')
+                    exit(-1)
+                else:
+                    await ctx.send('No bot upgrade found.')
+
+        @self.bot.command(description='Terminates the bot process', aliases=['exit'])
+        @utils.has_role('Admin')
+        @commands.guild_only()
+        async def terminate(ctx):
+            if await utils.yn_question(ctx, 'Do you really want to terminate the bot?'):
+                await ctx.send('Bot will terminate now (and restart automatically, if started by run.cmd).')
+                exit(-1)
+
+    def upgrade(self) -> bool:
+        try:
+            import git
+
+            try:
+                with closing(git.Repo('.')) as repo:
+                    self.log.debug('- Checking for updates...')
+                    current_hash = repo.head.commit.hexsha
+                    origin = repo.remotes.origin
+                    origin.fetch()
+                    new_hash = origin.refs[repo.active_branch.name].object.hexsha
+                    if new_hash != current_hash:
+                        modules = False
+                        self.log.info('- Updating myself...')
+                        diff = repo.head.commit.diff(new_hash)
+                        for d in diff:
+                            if d.b_path == 'requirements.txt':
+                                modules = True
+                        try:
+                            repo.remote().pull(repo.active_branch)
+                            self.log.info('  => DCSServerBot updated to latest version.')
+                            if modules is True:
+                                self.log.warning('  => requirements.txt has changed. Installing missing modules...')
+                                subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'])
+                            return True
+                        except git.exc.GitCommandError:
+                            self.log.error('  => Autoupdate failed!')
+                            self.log.error('     Please revert back the changes in these files:')
+                            for item in repo.index.diff(None):
+                                self.log.error(f'     ./{item.a_path}')
+                            return False
+                    else:
+                        self.log.debug('- No update found for DCSServerBot.')
+            except git.exc.InvalidGitRepositoryError:
+                self.log.error('No git repository found. Aborting. Please use "git clone" to install DCSServerBot.')
+        except ImportError:
+            self.log.error('Autoupdate functionality requires "git" executable to be in the PATH.')
+        return False
+
+
+async def main():
+    if not path.exists('config/dcsserverbot.ini'):
+        Install.install()
+    else:
+        Install.verify()
+        await Main().run()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except discord.errors.LoginFailure:
+        print('Invalid Discord TOKEN provided. Please check the documentation.')
+    except KeyboardInterrupt:
+        exit(-1)
+    except Exception as ex:
+        print(f"{ex.__class__.__name__}: {ex}")
+        exit(-1)

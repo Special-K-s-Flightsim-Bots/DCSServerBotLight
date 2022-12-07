@@ -1,0 +1,14 @@
+{
+  "color": "blue",
+  "title": "Mission Briefing: {mission_info[current_mission]}",
+  "description": "{mission_info[briefing][descriptionText]}",
+  "elements":
+  [
+    {
+      "class": "plugins.mission.briefing.Header"
+    },
+    {
+      "class": "plugins.mission.briefing.Body"
+    }
+  ]
+}
