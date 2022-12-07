@@ -1,6 +1,6 @@
 # Welcome to DCSServerBot (Light)!
 This is a simpler solution of the full-fledged [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot),
-that supports server and mission administration, display of mission details and players and some other nice feathers
+that supports server and mission administration, display of mission details and players and some other nice features
 that you see below.</br>
 DCSServerBotLight does not need a Postgres database, so it is much easier to install and setup than the original solution.
 If you want to use statistics, point based credit systems, punishment and slotblocking, you might want to look into the
