@@ -311,7 +311,7 @@ class Main:
                                 modules = True
                         try:
                             repo.remote().pull(repo.active_branch)
-                            self.log.info('  => DCSServerBot updated to latest version.')
+                            self.log.info('  => DCSServerBotLight updated to latest version.')
                             if modules is True:
                                 self.log.warning('  => requirements.txt has changed. Installing missing modules...')
                                 subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'])
@@ -323,9 +323,9 @@ class Main:
                                 self.log.error(f'     ./{item.a_path}')
                             return False
                     else:
-                        self.log.debug('- No update found for DCSServerBot.')
+                        self.log.debug('- No update found for DCSServerBotLight.')
             except git.exc.InvalidGitRepositoryError:
-                self.log.error('No git repository found. Aborting. Please use "git clone" to install DCSServerBot.')
+                self.log.error('No git repository found. Aborting. Please use "git clone" to install DCSServerBotLight.')
         except ImportError:
             self.log.error('Autoupdate functionality requires "git" executable to be in the PATH.')
         return False

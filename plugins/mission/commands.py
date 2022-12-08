@@ -3,6 +3,7 @@ import aiohttp
 import asyncio
 import discord
 import os
+import platform
 import re
 import shutil
 from core import utils, DCSServerBot, Plugin, Report, Status, Server, Channel
@@ -27,6 +28,21 @@ class Mission(Plugin):
         self.update_channel_name.cancel()
         self.update_mission_status.cancel()
         await super().cog_unload()
+
+    @commands.command(description='Lists the registered DCS servers')
+    @utils.has_role('DCS')
+    @commands.guild_only()
+    async def servers(self, ctx):
+        if len(self.bot.servers) > 0:
+            for server_name, server in self.bot.servers.items():
+                if server.status in [Status.RUNNING, Status.PAUSED, Status.STOPPED]:
+                    players = server.get_active_players()
+                    num_players = len(players) + 1
+                    report = Report(self.bot, 'mission', 'serverStatus.json')
+                    env = await report.render(server=server, num_players=num_players)
+                    await ctx.send(embed=env.embed)
+        else:
+            await ctx.send('No server running on host {}'.format(platform.node()))
 
     @commands.command(description='Shows the active DCS mission')
     @utils.has_role('DCS Admin')

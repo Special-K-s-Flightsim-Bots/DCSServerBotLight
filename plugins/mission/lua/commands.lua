@@ -10,6 +10,12 @@ local mod_dictionary= require('dictionary')
 dcsbot.registered = false
 dcsbot.userInfo = dcsbot.userInfo or {}
 
+function dcsbot.loadParams(json)
+    log.write('DCSServerBot', log.DEBUG, 'Mission: loadParams(' .. json.plugin ..')')
+    dcsbot.params = dcsbot.params or {}
+    dcsbot.params[json.plugin] = json.params
+end
+
 function dcsbot.registerDCSServer(json)
     log.write('DCSServerBot', log.DEBUG, 'Mission: registerDCSServer()')
 	local msg = {}

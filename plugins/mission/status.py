@@ -5,11 +5,11 @@ from typing import Optional
 
 
 STATUS_IMG = {
-    Status.LOADING: 'https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot/blob/master/images/loading_256.png?raw=true',
-    Status.PAUSED: 'https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot/blob/master/images/pause_256.png?raw=true',
-    Status.RUNNING: 'https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot/blob/master/images/play_256.png?raw=true',
-    Status.STOPPED: 'https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot/blob/master/images/stop_256.png?raw=true',
-    Status.SHUTDOWN: 'https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot/blob/master/images/stop_256.png?raw=true'
+    Status.LOADING: 'https://github.com/Special-K-s-Flightsim-Bots/DCSServerBotLight/blob/master/images/loading_256.png?raw=true',
+    Status.PAUSED: 'https://github.com/Special-K-s-Flightsim-Bots/DCSServerBotLight/blob/master/images/pause_256.png?raw=true',
+    Status.RUNNING: 'https://github.com/Special-K-s-Flightsim-Bots/DCSServerBotLight/blob/master/images/play_256.png?raw=true',
+    Status.STOPPED: 'https://github.com/Special-K-s-Flightsim-Bots/DCSServerBotLight/blob/master/images/stop_256.png?raw=true',
+    Status.SHUTDOWN: 'https://github.com/Special-K-s-Flightsim-Bots/DCSServerBotLight/blob/master/images/stop_256.png?raw=true'
 }
 
 

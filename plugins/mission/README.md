@@ -13,15 +13,16 @@ folder of your DCS-server (for instance via a Google Drive) will be auto-added t
 
 ## Discord Commands
 
-| Command          | Parameter                | Channel                     | Role                  | Description                                                                                          |
-|------------------|--------------------------|-----------------------------|-----------------------|------------------------------------------------------------------------------------------------------|
-| .mission         |                          | status-/admin-channel       | DCS Admin             | Information about the active mission. Persistent display in status-channel.                          |
-| .players         |                          | status-/chat-/admin-channel | DCS                   | Lists the players currently active on the server. Persistent display in status-channel.              |
-| .list / .load    |                          | admin-channel               | DCS Admin             | Select a mission to start / restart.                                                                 |
-| .add             | [miz-file]               | admin-channel               | DCS Admin             | Select a mission from the file system to be added to the mission list.                               |
-| .delete / .del   |                          | admin-channel               | DCS Admin             | Delete a mission from the mission list and optional from the file system.                            |
-| .restart         | [time in secs] [message] | admin-channel               | DCS Admin             | Restarts the current mission after [time] seconds. A message will be sent as a popup to that server. |
-| .pause           |                          | admin-channel               | DCS Admin, GameMaster | Pauses the current running mission.                                                                  |
-| .unpause         |                          | admin-channel               | DCS Admin, GameMaster | Resumes the current running mission.                                                                 |
-| .briefing/.brief |                          | all                         | DCS                   | Shows the description / briefing of the running mission.                                             |
-| .atis / .weather | Airport Name             | all                         | DCS                   | Information about a specific airport in this mission (incl. weather).                                |
+| Command          | Parameter                | Channel                     | Role                  | Description                                                                                                               |
+|------------------|--------------------------|-----------------------------|-----------------------|---------------------------------------------------------------------------------------------------------------------------|
+| .servers         |                          | all                         | DCS                   | Lists all registered DCS servers and their status (same as .mission but for all). Servers will auto-register on startup.  |
+| .mission         |                          | status-/admin-channel       | DCS Admin             | Information about the active mission. Persistent display in status-channel.                                               |
+| .players         |                          | status-/chat-/admin-channel | DCS                   | Lists the players currently active on the server. Persistent display in status-channel.                                   |
+| .list / .load    |                          | admin-channel               | DCS Admin             | Select a mission to start / restart.                                                                                      |
+| .add             | [miz-file]               | admin-channel               | DCS Admin             | Select a mission from the file system to be added to the mission list.                                                    |
+| .delete / .del   |                          | admin-channel               | DCS Admin             | Delete a mission from the mission list and optional from the file system.                                                 |
+| .restart         | [time in secs] [message] | admin-channel               | DCS Admin             | Restarts the current mission after [time] seconds. A message will be sent as a popup to that server.                      |
+| .pause           |                          | admin-channel               | DCS Admin, GameMaster | Pauses the current running mission.                                                                                       |
+| .unpause         |                          | admin-channel               | DCS Admin, GameMaster | Resumes the current running mission.                                                                                      |
+| .briefing/.brief |                          | all                         | DCS                   | Shows the description / briefing of the running mission.                                                                  |
+| .atis / .weather | Airport Name             | all                         | DCS                   | Information about a specific airport in this mission (incl. weather).                                                     |

@@ -51,7 +51,7 @@ class DSMC(Extension):
                             line = line.replace(str(self.locals['DSMC_AutosaveExit_time']), '0', 1)
                             self.locals['DSMC_AutosaveExit_time'] = 0
                         outfile.write(line)
-            self.log.info('  => DSMC configuration changed to be compatible with DCSServerBot.')
+            self.log.info('  => DSMC configuration changed to be compatible with DCSServerBotLight.')
         return True
 
     async def beforeMissionLoad(self) -> bool:

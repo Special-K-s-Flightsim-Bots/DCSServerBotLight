@@ -166,4 +166,4 @@ if __name__ == "__main__":
     if not path.exists('config/dcsserverbot.ini'):
         Install.install()
     else:
-        print('DCSServerBot seems to be installed already.\nRun "run.py" instead.')
+        print('DCSServerBotLight seems to be installed already.\nRun "run.py" instead.')
