@@ -1,6 +1,5 @@
-from typing import Type
-
 from core import DCSServerBot, Plugin, utils, Server, EventListener, TEventListener
+from typing import Type
 from discord.ext import commands
 from .listener import SampleEventListener
 

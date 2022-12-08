@@ -42,9 +42,3 @@ function dcsbot.force_player_slot(json)
     log.write('DCSServerBot', log.DEBUG, 'Admin: force_player_slot()')
     net.force_player_slot(json.playerID, json.sideID or 0, json.slotID or '')
 end
-
-function dcsbot.loadParams(json)
-    log.write('DCSServerBot', log.DEBUG, 'Admin: loadParams(' .. json.plugin ..')')
-    dcsbot.params = dcsbot.params or {}
-    dcsbot.params[json.plugin] = json.params
-end

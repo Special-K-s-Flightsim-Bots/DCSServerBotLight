@@ -1,16 +1,15 @@
 from __future__ import annotations
 import asyncio
-import platform
-
 import discord
 import json
 import os
+import platform
 import random
 import string
 from copy import deepcopy
 from discord import Interaction
 from discord.ui import View, Select, Button
-from core import Plugin, PluginRequiredError, utils, Status, MizFile, Autoexec, Extension, Server, Channel, Report
+from core import Plugin, PluginRequiredError, utils, Status, MizFile, Autoexec, Extension, Server, Channel
 from datetime import datetime, timedelta
 from discord.ext import tasks, commands
 from typing import Type, Optional, List, TYPE_CHECKING, cast
@@ -358,7 +357,7 @@ class Scheduler(Plugin):
             return
         # check if the server is populated
         if server.is_populated():
-            if not server.on_empty:
+            if not server.on_empty and 'mission_time' in config['restart']:
                 server.on_empty = {'command': method}
             warn_times = Scheduler.get_warn_times(config)
             restart_in = max(warn_times) if len(warn_times) else 0
@@ -379,9 +378,9 @@ class Scheduler(Plugin):
         else:
             server.restart_pending = True
 
+        if 'shutdown' in method:
+            await self.teardown_dcs(server)
         if method == 'restart_with_shutdown':
-            await server.shutdown()
-            await self.bot.audit(f"{string.capwords(self.plugin_name)} shut down DCS server", server=server)
             await self.launch_dcs(server, config)
         elif method == 'restart':
             if self.is_mission_change(server, config):
@@ -478,21 +477,6 @@ class Scheduler(Plugin):
                 ext: Extension = utils.str_to_class(extension)
             ext.schedule(config, self.lastrun)
         self.lastrun = datetime.now()
-
-    @commands.command(description='Lists the registered DCS servers')
-    @utils.has_role('DCS')
-    @commands.guild_only()
-    async def servers(self, ctx):
-        if len(self.bot.servers) > 0:
-            for server_name, server in self.bot.servers.items():
-                if server.status in [Status.RUNNING, Status.PAUSED, Status.STOPPED]:
-                    players = server.get_active_players()
-                    num_players = len(players) + 1
-                    report = Report(self.bot, 'mission', 'serverStatus.json')
-                    env = await report.render(server=server, num_players=num_players)
-                    await ctx.send(embed=env.embed)
-        else:
-            await ctx.send('No server running on host {}'.format(platform.node()))
 
     @commands.command(description='Starts a DCS/DCS-SRS server')
     @utils.has_role('DCS Admin')

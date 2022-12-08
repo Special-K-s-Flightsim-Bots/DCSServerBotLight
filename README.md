@@ -39,7 +39,7 @@ These commands can be used to administrate the bot itself.
 There is a sample in the plugins/samples subdirectory, that will guide you through the steps. If you want your plugin to be added to the distribution, just contact me via the contact details below.
 
 ## Extensions
-Many DCS admins use extensions or add-ons like DCS-SRS, Taview, Lotatc, etc.</br>
+Many DCS admins use extensions or add-ons like DCS-SRS, Tacview, Lotatc, etc.</br>
 DCSServerBot supports some of them already and can add a bit of quality of life. 
 Check out [Extensions](./extensions/README.md) for more info on how to use them.
 
@@ -76,7 +76,7 @@ Best is to use ```git clone``` as you then can use the autoupdate functionality 
 Otherwise download the latest release version and extract it somewhere on your PC that is running the DCS server(s) and 
 give it write permissions, if needed. 
 
-**Attention:** Make sure that the bot's installation directory can only be seen by yourself and is not exposed to anybody 
+**Attention:** Make sure that the bots installation directory can only be seen by yourself and is not exposed to anybody 
 outside via www etc.
 
 ---
@@ -92,10 +92,10 @@ a) __BOT Section__
 
 | Parameter           | Description                                                                                                                                                                                                                                                                                                                                                                                                          |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| OWNER               | The Discord ID of the Bot's owner (that's you!). If you don't know your ID, go to your Discord profile, make sure "Developer Mode" is enabled under "Advanced", go to "My Account", press the "..." besides your profile picture and select "Copy ID"                                                                                                                                                                |
+| OWNER               | The Discord ID of the bots owner (that's you!). If you don't know your ID, go to your Discord profile, make sure "Developer Mode" is enabled under "Advanced", go to "My Account", press the "..." besides your profile picture and select "Copy ID"                                                                                                                                                                 |
 | TOKEN               | The token to be used to run the bot. Can be obtained at http://discord.com/developers.                                                                                                                                                                                                                                                                                                                               |
 | COMMAND_PREFIX      | The prefix to be used by Discord commands. Default is '.'                                                                                                                                                                                                                                                                                                                                                            |
-| CHAT_COMMAND_PREFIX | The prefix to be used by ingame-chat comannds. Default is '-'                                                                                                                                                                                                                                                                                                                                                        |                                                                                                                                                                                                                                                                                                                                                        
+| CHAT_COMMAND_PREFIX | The prefix to be used by in-game-chat commands. Default is '-'                                                                                                                                                                                                                                                                                                                                                       |                                                                                                                                                                                                                                                                                                                                                        
 | HOST                | IP the bot listens on for messages from DCS. Default is 127.0.0.1, to only accept internal communication on that machine.                                                                                                                                                                                                                                                                                            |
 | PORT                | UDP port, the bot listens on for messages from DCS. Default is 10081. **__Don't expose this port to the outside world!__**                                                                                                                                                                                                                                                                                           |
 | MASTER              | If true, start the bot in master-mode (default for one-bot-installations). If only one bot is running, then there is only a master.\nIf you have to use more than one bot installation, for multiple DCS servers that are spanned over several locations, you have to install one agent (MASTER = false) at every other location. All DCS servers of that location will then automatically register with that agent. |
@@ -103,7 +103,7 @@ a) __BOT Section__
 | SLOW_SYSTEM         | If true, some timeouts are increased to allow slower systems to catch up. Default is false.                                                                                                                                                                                                                                                                                                                          |
 | PLUGINS             | List of plugins to be loaded (you usually don't want to touch this).                                                                                                                                                                                                                                                                                                                                                 |
 | OPT_PLUGINS         | List of optional plugins to be loaded. Here you can add your plugins that you want to use and that are not loaded by default.                                                                                                                                                                                                                                                                                        |
-| AUTOUPDATE          | If true, the bot autoupdates itself with the latest release on startup.                                                                                                                                                                                                                                                                                                                                              |
+| AUTOUPDATE          | If true, the bot auto-updates itself with the latest release on startup.                                                                                                                                                                                                                                                                                                                                             |
 | AUTOSCAN            | Scan for missions in Saved Games\..\Missions and auto-add them to the mission list (default = false).                                                                                                                                                                                                                                                                                                                |
 | GREETING_DM         | A greeting message, that people will receive as a DM in Discord, if they join your guild.                                                                                                                                                                                                                                                                                                                            |
 | LOGLEVEL            | The level of logging that is written into the logfile (DEBUG, INFO, WARNING, ERROR, CRITICAL).                                                                                                                                                                                                                                                                                                                       |
@@ -243,7 +243,7 @@ Just configure them as agents (_MASTER = false_) and you are good.
 
 ### Setup Multiple Servers on Multiple Host at Different Locations
 Works the same as with setting up multiple hosts at the same location. Just configure one bot as MASTER=true and all
-others as MASTER=false and you are good. DCSServerBotLight will never be able to do MASTER/AGENT handovers, due to the 
+others as MASTER=false, and you are good. DCSServerBotLight will never be able to do MASTER/AGENT handovers, due to the 
 lack of a central database, so you need to make sure that at least one bot is always a master.
 
 ### How to talk to the Bot from inside Missions
@@ -292,7 +292,7 @@ If no embed named "myEmbed" is there already, the updateEmbed() call will genera
 ## Contact / Support
 If you need support, if you want to chat with me or other users or if you like to contribute, jump into my [Support Discord](https://discord.gg/zjRateN).
 
-If you like what I do and you want to support me, you can do that via my [Patreon Page](https://www.patreon.com/DCS_SpecialK).
+If you like what I do, and you want to support me, you can do that via my [Patreon Page](https://www.patreon.com/DCS_SpecialK).
 
 ---
 ## Credits
