@@ -11,7 +11,6 @@ from datetime import datetime
 from discord import SelectOption, Interaction
 from discord.ext import commands, tasks
 from discord.ui import Select, View, Button
-from os import path
 from typing import Optional, cast
 from .listener import MissionEventListener
 
@@ -422,15 +421,17 @@ class Mission(Plugin):
     @tasks.loop(minutes=1.0)
     async def update_mission_status(self):
         async def warn_admins(s: Server, message: str) -> None:
-            mentions = ''
-            for role_name in [x.strip() for x in self.bot.config['ROLES']['DCS Admin'].split(',')]:
-                role: discord.Role = discord.utils.get(self.bot.guilds[0].roles, name=role_name)
-                if role:
-                    mentions += role.mention
+            if self.bot.config.getboolean(s.installation, 'PING_ADMIN_ON_CRASH'):
+                mentions = ''
+                for role_name in [x.strip() for x in self.bot.config['ROLES']['DCS Admin'].split(',')]:
+                    role: discord.Role = discord.utils.get(self.bot.guilds[0].roles, name=role_name)
+                    if role:
+                        mentions += role.mention
+                message += mentions + ' ' + message
             logdir = os.path.expandvars("%USERPROFILE%\\Saved Games\\" + s.installation + "\\logs\\")
             timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
             shutil.copy2(logdir + 'dcs.log', logdir + f"dcs.{timestamp}.log")
-            await s.get_channel(Channel.ADMIN).send(mentions + ' ' + message +
+            await s.get_channel(Channel.ADMIN).send(message +
                                                     f"\nLatest dcs.log can be pulled with "
                                                     f"{self.bot.config['BOT']['COMMAND_PREFIX']}download of "
                                                     f"dcs.{timestamp}.log\nIf the scheduler is configured for this "
@@ -534,20 +535,20 @@ class Mission(Plugin):
         if not server or not utils.check_roles([x.strip() for x in self.bot.config['ROLES']['DCS Admin'].split(',')], message.author):
             return
         att = message.attachments[0]
-        filename = path.expandvars(self.bot.config[server.installation]['DCS_HOME']) + '\\Missions\\' + att.filename
+        filename = server.missions_dir + os.path.sep + att.filename
         try:
             ctx = utils.ContextWrapper(message)
             stopped = False
             exists = False
-            if path.exists(filename):
+            if os.path.exists(filename):
                 exists = True
                 if await utils.yn_question(ctx, 'File exists. Do you want to overwrite it?') is False:
                     await message.channel.send('Upload aborted.')
                     return
                 if server.status in [Status.RUNNING, Status.PAUSED] and \
-                        path.normpath(server.current_mission.filename) == path.normpath(filename):
-                    if await utils.yn_question(ctx, 'Mission is currently active.\nDo you want me to stop the DCS '
-                                                    'Server to replace it?') is True:
+                        os.path.normpath(server.current_mission.filename) == os.path.normpath(filename):
+                    if await utils.yn_question(ctx, 'A mission is currently active.\nDo you want me to stop the DCS-'
+                                                    'server to replace it?') is True:
                         await server.stop()
                         stopped = True
                     else:
@@ -567,7 +568,7 @@ class Mission(Plugin):
             await self.bot.audit(f'uploaded mission "{name}"', server=server, user=message.author)
             if stopped:
                 await server.start()
-            elif await utils.yn_question(ctx, 'Do you want to load this mission?'):
+            elif server.status != Status.SHUTDOWN and await utils.yn_question(ctx, 'Do you want to load this mission?'):
                 data = await server.sendtoDCSSync({"command": "listMissions"})
                 missions = data['missionList']
                 for idx, mission in enumerate(missions):

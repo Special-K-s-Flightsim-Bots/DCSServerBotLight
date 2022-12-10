@@ -29,17 +29,17 @@ download to the current channel.</br>
 
 ## Discord Commands
 
-| Command   | Parameter       | Channel       | Role      | Description                                                                                                              |
-|-----------|-----------------|---------------|-----------|--------------------------------------------------------------------------------------------------------------------------|
-| .update   | [-force]        | admin-channel | DCS Admin | Updates DCS World to the latest available version. -force can be used, if no update could be detected automatically.     |
-| .password |                 | admin-channel | DCS Admin | Changes the password of a DCS server.                                                                                    |
-| .kick     | name [reason]   | admin-channel | DCS Admin | Kicks the user with the in-game name "name" from the DCS server. The "reason" will be provided to the user.              |
-| .spec     | name [reason]   | admin-channel | DCS Admin | Moves the user with the in-game name "name" to spectators. The "reason" will be provided to the user as a chat message.  |
-| .ban      | ucid [reason]   | all           | DCS Admin | Bans a specific player by their UCID.                                                                                    |
-| .unban    | ucid            | all           | DCS Admin | Unbans a specific player by their UCID.                                                                                  |
-| .bans     |                 | all           | DCS Admin | Lists the current active bans.                                                                                           |
-| .download |                 | admin-channel | DCS Admin | Download a dcs.log, dcsserverbot.log, bot config file or a mission into a DM, path or configured channel.                |
-| .shell    |                 | admin-channel | Admin     | Runs a shell command on a specific node.                                                                                 |
+| Command   | Parameter     | Channel       | Role      | Description                                                                                                              |
+|-----------|---------------|---------------|-----------|--------------------------------------------------------------------------------------------------------------------------|
+| .update   | [-force]      | admin-channel | DCS Admin | Updates DCS World to the latest available version. -force can be used, if no update could be detected automatically.     |
+| .password |               | admin-channel | DCS Admin | Changes the password of a DCS server.                                                                                    |
+| .kick     | name          | admin-channel | DCS Admin | Kicks the user with the in-game name "name" from the DCS server. The "reason" will be provided to the user.              |
+| .spec     | name [reason] | admin-channel | DCS Admin | Moves the user with the in-game name "name" to spectators. The "reason" will be provided to the user as a chat message.  |
+| .ban      | name          | admin-channel | DCS Admin | Bans a specific player by their UCID.                                                                                    |
+| .unban    | ucid          | admin-channel | DCS Admin | Unbans a specific player by their UCID.                                                                                  |
+| .bans     |               | admin-channel | DCS Admin | Lists the current active bans.                                                                                           |
+| .download |               | admin-channel | DCS Admin | Download a dcs.log, dcsserverbot.log, bot config file or a mission into a DM, path or configured channel.                |
+| .shell    |               | admin-channel | Admin     | Runs a shell command on a specific node.                                                                                 |
 
 In addition, you can upload embeds to discord channels, just by using json files like this:
 

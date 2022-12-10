@@ -149,6 +149,8 @@ If your directory is named DCS instead (stable version), just add these fields t
 | DCS_HOST                   | The internal (!) IP of the machine, DCS is running onto. If the DCS server is running on the same machine as the bot (default), this should be 127.0.0.1.                                  |
 | DCS_PORT                   | Must be a unique value > 1024 of an unused port in your system. This is **NOT** the DCS tcp/udp port (10308), that is used by DCS but a unique different one. Keep the default, if unsure. |
 | DCS_HOME                   | The main configuration directory of your DCS server installation (for Hook installation). Keep it empty, if you like to place the Hook by yourself.                                        |
+| MISSIONS_DIR               | (Optional) If you want to use a central missions directory for multiple servers, you can set it in here.                                                                                   |
+| PING_ADMIN_ON_CRASH        | Define if the role DCS Admin should be pinged when a server crash is being detected (default = true).                                                                                      |
 | CHAT_CHANNEL               | The ID of the in-game chat channel to be used for the specific DCS server. Must be unique for every DCS server instance configured. If "-1", no chat messages will be generated.           |
 | STATUS_CHANNEL             | The ID of the status-display channel to be used for the specific DCS server. Must be unique for every DCS server instance configured.                                                      |
 | ADMIN_CHANNEL              | The ID of the admin-commands channel to be used for the specific DCS server. Must be unique for every DCS server instance configured.                                                      |
@@ -199,8 +201,8 @@ This is not configurable, it's a general rule (and a good one in my eyes).
 ---
 ## Running of the Bot
 To start the bot, you can either use the packaged ```run.cmd``` command or ```python run.py```.
-<br/>If using _AUTOUPDATE = true_ it is recommended to start the bot via _run.cmd_, as this runs it in a loop as it will 
-close itself after an update has taken place.</br>
+<br/>If using _AUTOUPDATE = true_ it is recommended to start the bot via _run.cmd_, as this runs it in a loop as it will close 
+itself after an update has taken place.</br>
 If you want to run the bot from autostart, create a small batch script, that will change to the bots installation 
 directory and run the bot from there like so:
 ```cmd

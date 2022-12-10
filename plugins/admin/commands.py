@@ -9,7 +9,7 @@ import shlex
 import shutil
 import string
 import subprocess
-from core import utils, DCSServerBot, Plugin, Report, Player, Status, Server
+from core import utils, DCSServerBot, Plugin, Player, Status, Server
 from discord import Interaction, SelectOption
 from discord.ext import commands, tasks
 from discord.ui import Select, View, Button, Modal, TextInput
@@ -143,7 +143,7 @@ class Agent(Plugin):
     @commands.command(description='Kick a user by name', usage='<name>')
     @utils.has_role('DCS Admin')
     @commands.guild_only()
-    async def kick(self, ctx, *args):
+    async def kick(self, ctx: commands.Context, *args) -> None:
         server: Server = await self.bot.get_server(ctx)
         if not server:
             return
@@ -155,7 +155,7 @@ class Agent(Plugin):
             return
         players = [x for x in server.get_active_players() if name.casefold() in x.name.casefold()]
         if len(players) > 25:
-            await ctx.send(f'Usage: {ctx.prefix}kick <user>')
+            await ctx.send(f'Usage: {ctx.prefix}{ctx.command.name} <user>')
             return
         elif len(players) == 0:
             await ctx.send(f"No player \"{name}\" found.")
@@ -185,6 +185,11 @@ class Agent(Plugin):
                 await interaction.response.send_modal(modal)
                 self.stop()
 
+            @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary, emoji='❌')
+            async def cancel(self, interaction: Interaction, button: Button):
+                await interaction.response.defer()
+                self.stop()
+
             async def interaction_check(self, interaction: Interaction, /) -> bool:
                 if interaction.user != self.ctx.author:
                     await interaction.response.send_message('This is not your command, mate!', ephemeral=True)
@@ -197,6 +202,19 @@ class Agent(Plugin):
         await view.wait()
         await msg.delete()
 
+    @staticmethod
+    def _format_bans(rows: dict):
+        embed = discord.Embed(title='List of Bans', color=discord.Color.blue())
+        ucids = names = until = ''
+        for ban in rows:
+            names += ban['name'] + '\n'
+            ucids += ban['ucid'] + '\n'
+            until += f"<t:{ban['banned_until']}:R>\n"
+        embed.add_field(name='UCID', value=ucids)
+        embed.add_field(name='Name', value=names)
+        embed.add_field(name='Until', value=until)
+        return embed
+
     @commands.command(description='Shows active bans')
     @utils.has_role('DCS Admin')
     @commands.guild_only()
@@ -205,34 +223,84 @@ class Agent(Plugin):
         if server:
             if server.status in [Status.STOPPED, Status.RUNNING, Status.PAUSED]:
                 data = await server.sendtoDCSSync({"command": "bans"})
-                # TODO
+                if not data['bans']:
+                    await ctx.send('No player is banned on this server.')
+                else:
+                    await utils.pagination(self, ctx, data['bans'], self._format_bans, 20)
             else:
                 await ctx.send(f'Server is {server.status.name}.')
 
-    @commands.command(description='Bans a user by ucid', usage='<ucid> [period] [reason]')
+    @commands.command(description='Bans a user by ucid', usage='<name>')
     @utils.has_role('DCS Admin')
     @commands.guild_only()
-    async def ban(self, ctx, ucid: str, period: int = 0, *args):
-        if len(args) > 0:
-            reason = ' '.join(args)
-        else:
-            reason = 'n/a'
-        for server in self.bot.servers.values():
-            server.sendtoDCS({
-                "command": "ban",
-                "ucid": ucid,
-                "period": period,
-                "reason": reason
-            })
-        await ctx.send(f"User {ucid} banned on all servers on node {platform.node}.")
+    async def ban(self, ctx: commands.Context, *args) -> None:
+        server: Server = await self.bot.get_server(ctx)
+        if not server:
+            return
+
+        name = ' '.join(args)
+        # find that player
+        if server.status != Status.RUNNING:
+            await ctx.send(f'Server is {server.status.name.lower()}.')
+            return
+        players = [x for x in server.get_active_players() if name.casefold() in x.name.casefold()]
+        if len(players) > 25:
+            await ctx.send(f'Usage: {ctx.prefix}ban <user>')
+            return
+        elif len(players) == 0:
+            await ctx.send(f"No player \"{name}\" found.")
+            return
+
+        class BanModal(Modal, title="Reason for banning"):
+            reason = TextInput(label="Reason", default="n/a", max_length=80, required=False)
+            period = TextInput(label="Time in Seconds", default=str(30*86400), required=False)
+
+            def __init__(self, player: Player):
+                super().__init__()
+                self.player = player
+
+            async def on_submit(self, interaction: discord.Interaction):
+                period = int(self.period.value)
+                server.ban(self.player, self.reason.value, period)
+                await server.bot.audit(f"banned player {self.player.name} with reason {self.reason.value} for {utils.format_time(period)}.",
+                                       user=interaction.user)
+                await interaction.response.send_message(f"Banned player {self.player.name}.")
+
+        class BanView(View):
+            def __init__(self, ctx: commands.Context):
+                super().__init__()
+                self.ctx = ctx
+
+            @discord.ui.select(placeholder="Select a player to be banned", options=[SelectOption(label=x.name, value=str(players.index(x))) for x in players])
+            async def callback(self, interaction: Interaction, select: Select):
+                modal = BanModal(players[int(select.values[0])])
+                await interaction.response.send_modal(modal)
+                self.stop()
+
+            @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary, emoji='❌')
+            async def cancel(self, interaction: Interaction, button: Button):
+                await interaction.response.defer()
+                self.stop()
+
+            async def interaction_check(self, interaction: Interaction, /) -> bool:
+                if interaction.user != self.ctx.author:
+                    await interaction.response.send_message('This is not your command, mate!', ephemeral=True)
+                    return False
+                else:
+                    return True
+
+        view = BanView(ctx)
+        msg = await ctx.send(view=view)
+        await view.wait()
+        await msg.delete()
 
     @commands.command(description='Unbans a user by ucid', usage='<ucid>')
     @utils.has_role('DCS Admin')
     @commands.guild_only()
     async def unban(self, ctx, ucid: str):
         for server in self.bot.servers.values():
-            server.sendtoDCS({"command": "unban", "ucid": ucid})
-        await ctx.send(f"User {ucid} unbanned on all servers on node {platform.node}.")
+            server.unban(ucid)
+        await ctx.send(f"User {ucid} unbanned on all servers on node {platform.node()}.")
 
     @commands.command(description='Moves a user to spectators', usage='<name>')
     @utils.has_role('DCS Admin')
