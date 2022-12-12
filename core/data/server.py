@@ -288,16 +288,16 @@ class Server(DataObject):
             "time": timeout
         })
 
-    def rename(self, old_name: str, new_name: str, update_settings: bool = False) -> None:
+    def rename(self, new_name: str, update_settings: bool = False) -> None:
         # call rename() in all Plugins
         for plugin in self.bot.cogs.values():  # type: Plugin
-            plugin.rename(old_name, new_name)
+            plugin.rename(self.name, new_name)
         # rename the entries in the main database tables
         with DBConnection() as cursor:
             cursor.execute('UPDATE servers SET server_name = %s WHERE server_name = ?',
-                           (new_name, old_name))
+                           (new_name, self.name))
             cursor.execute('UPDATE message_persistence SET server_name = ? WHERE server_name = ?',
-                           (new_name, old_name))
+                           (new_name, self.name))
         if update_settings:
             self.settings['name'] = new_name
         self.name = new_name

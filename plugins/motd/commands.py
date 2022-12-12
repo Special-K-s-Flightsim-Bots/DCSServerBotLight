@@ -15,7 +15,7 @@ class MessageOfTheDay(Plugin):
 
     def __init__(self, bot: DCSServerBot, eventlistener: Type[TEventListener] = None):
         super().__init__(bot, eventlistener)
-        self.last_nudge = dict[str, datetime]()
+        self.last_nudge = dict[str, int]()
         self.nudge.start()
 
     async def cog_unload(self):

@@ -1,6 +1,5 @@
 import asyncio
 import discord
-import shlex
 from core import EventListener, Player, Server, Channel
 
 

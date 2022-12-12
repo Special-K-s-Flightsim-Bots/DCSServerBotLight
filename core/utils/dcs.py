@@ -7,7 +7,6 @@ import re
 import shutil
 import xml
 import xmltodict
-from contextlib import closing
 from core.const import SAVED_GAMES
 from typing import Optional, List, Tuple
 from . import config
