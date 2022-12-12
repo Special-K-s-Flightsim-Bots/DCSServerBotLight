@@ -148,8 +148,8 @@ class Agent(Plugin):
         if not server:
             return
         if server.status in [Status.RUNNING, Status.PAUSED]:
-            if utils.yn_question(ctx, question='Server has to be stopped to change its configuration.\n'
-                                               'Do you want to stop it?'):
+            if await utils.yn_question(ctx, question='Server has to be stopped to change its configuration.\n'
+                                                     'Do you want to stop it?'):
                 await server.stop()
             else:
                 await ctx.send('Aborted.')
@@ -186,7 +186,7 @@ class Agent(Plugin):
 
             @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary, custom_id='cfg_cancel', emoji='❌')
             async def on_cancel(self, interaction: Interaction, button: Button):
-                await interaction.response.defer()
+                await interaction.response.send_message('Aborted.')
                 self.stop()
 
             async def interaction_check(self, interaction: Interaction, /) -> bool:
@@ -245,7 +245,7 @@ class Agent(Plugin):
 
             @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary, emoji='❌')
             async def cancel(self, interaction: Interaction, button: Button):
-                await interaction.response.defer()
+                await interaction.response.send_message('Aborted.')
                 self.stop()
 
             async def interaction_check(self, interaction: Interaction, /) -> bool:
@@ -333,7 +333,7 @@ class Agent(Plugin):
 
             @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary, emoji='❌')
             async def cancel(self, interaction: Interaction, button: Button):
-                await interaction.response.defer()
+                await interaction.response.send_message('Aborted.')
                 self.stop()
 
             async def interaction_check(self, interaction: Interaction, /) -> bool:
