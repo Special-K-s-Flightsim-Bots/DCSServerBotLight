@@ -66,7 +66,6 @@ class Install:
                 '[BOT]\n',
                 'OWNER=<see documentation>\n',
                 'TOKEN=<see documentation>\n',
-                'DATABASE_URL=postgres://<user>:<pass>@localhost:5432/<database>\n',
                 '\n'])
             if dcs_installation:
                 inifile.writelines([
