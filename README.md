@@ -34,6 +34,7 @@ These commands can be used to administrate the bot itself.
 | GameMaster    | Interaction with the running mission (inform users, set flags, etc). | yes      |              | [README](./plugins/gamemaster/README.md)   |
 | Cloud         | Connection to the DGSA Global Ban System.                            | yes      |              | [README](./plugins/cloud/README.md)        |
 | MOTD          | Generates a message of the day.                                      | yes      |              | [README](./plugins/motd/README.md)         |
+| FunkMan       | Support for Moose.FunkMan .                                          | yes      |              | [README](./plugins/funkman/README.md)      |
 
 ### In case you want to write your own plugin ...
 There is a sample in the plugins/samples subdirectory, that will guide you through the steps. If you want your plugin to be added to the distribution, just contact me via the contact details below.
@@ -133,13 +134,14 @@ c) __FILTER Section__ (Optional)
 
 d) __DCS Section__
 
-| Parameter               | Description                                                                                                                                   |
-|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| DCS_INSTALLATION        | The installation directory of DCS World.                                                                                                      |
-| AUTOUPDATE              | If true, your DCS server will be kept up-to-date automatically by the bot (default=false).                                                    |
-| SERVER_USER             | The username to display as user no. 1 in the server (aka "Observer")                                                                          |
-| MAX_HUNG_MINUTES        | The maximum amount in minutes the server is allowed to not respond to the bot until considered dead (default = 3). Set it to 0 to disable it. |
-| MESSAGE_PLAYER_USERNAME | Message that a user gets when being rejected because of a default player name (Player, Spieler, etc.).                                        |
+| Parameter                        | Description                                                                                                                                   |
+|----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| DCS_INSTALLATION                 | The installation directory of DCS World.                                                                                                      |
+| AUTOUPDATE                       | If true, your DCS server will be kept up-to-date automatically by the bot (default=false).                                                    |
+| SERVER_USER                      | The username to display as user no. 1 in the server (aka "Observer")                                                                          |
+| MAX_HUNG_MINUTES                 | The maximum amount in minutes the server is allowed to not respond to the bot until considered dead (default = 3). Set it to 0 to disable it. |
+| MESSAGE_PLAYER_USERNAME          | Message that a user gets when using line-feeds or carriage-returns in their names.                                                            |
+| MESSAGE_PLAYER_DEFAULT_USERNAME  | Message that a user gets when being rejected because of a default player name (Player, Spieler, etc.).                                        |                                                                                                                                               |
 
 e) __Server Specific Sections__
 
