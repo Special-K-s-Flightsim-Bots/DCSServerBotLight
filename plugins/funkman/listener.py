@@ -11,11 +11,11 @@ class FunkManEventListener(EventListener):
 
     def __init__(self, plugin: Plugin):
         super().__init__(plugin)
-        self.config = self.locals['configs'][0]
-        sys.path.append(self.config['install'])
+        config = self.locals['configs'][0]
+        sys.path.append(config['install'])
         from funkman.funkplot.funkplot import FunkPlot
         from funkman.utils.utils import _GetVal
-        self.funkplot = FunkPlot(ImagePath=self.config['IMAGEPATH'])
+        self.funkplot = FunkPlot(ImagePath=config['IMAGEPATH'])
         self._GetVal = _GetVal
 
     # from FunkBot, to be replaced with a proper function call!
