@@ -8,16 +8,15 @@ from .listener import FunkManEventListener
 class FunkMan(Plugin):
 
     def install(self):
-        if not self.locals:
-            raise PluginInstallationError(self.plugin_name, "Can't find config/funkman.json, please create one!")
         config = self.locals['configs'][0]
         if 'install' not in config:
             raise PluginConfigurationError(self.plugin_name, 'install')
-        if not os.path.exists(config['install']):
-            raise FileNotFoundError(config['install'])
-        self.log.debug('  => Checking for FunkMan.ini ...')
-        if os.path.exists(config['install'] + os.path.sep + 'FunkMan.ini'):
-            self.log.debug('  => Migrating FunkMan.ini ...')
+        funkpath = os.path.expandvars(config['install'])
+        if not os.path.exists(funkpath) or not os.path.exists(funkpath + os.path.sep + 'FunkMan.ini'):
+            self.log.error(f"No FunkMan installation found at {funkpath}!")
+            raise PluginConfigurationError(self.plugin_name, 'install')
+        if 'CHANNELID_MAIN' not in config:
+            self.log.info('  => Migrating FunkMan.ini ...')
             ini = ConfigParser()
             ini.read(config['install'] + os.path.sep + 'FunkMan.ini')
             if 'CHANNELID_MAIN' in ini['FUNKBOT']:
@@ -33,10 +32,10 @@ class FunkMan(Plugin):
                     config['IMAGEPATH'] = ini['FUNKPLOT']['IMAGEPATH']
             with open('config/funkman.json', 'w') as outfile:
                 json.dump(self.locals, outfile, indent=2)
-        else:
-            self.log.debug('  => No FunkMan.ini found.')
         super().install()
 
 
 async def setup(bot: DCSServerBot):
+    if not os.path.exists('config/funkman.json'):
+        raise PluginInstallationError('funkman', "Can't find config/funkman.json, please create one!")
     await bot.add_cog(FunkMan(bot, FunkManEventListener))

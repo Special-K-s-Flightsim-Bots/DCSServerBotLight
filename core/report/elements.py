@@ -44,8 +44,13 @@ class Image(EmbedElement):
 
 
 class Ruler(EmbedElement):
-    def render(self, ruler_length: Optional[int] = 34):
-        self.add_field(name='▬' * ruler_length, value='_ _', inline=False)
+    def render(self, header: Optional[str] = '', ruler_length: Optional[int] = 34):
+        if header:
+            header = ' ' + header + ' '
+        filler = int((ruler_length - len(header) / 2.5) / 2)
+        if filler <= 0:
+            filler = 1
+        self.add_field(name='▬' * filler + header + '▬' * filler, value='_ _', inline=False)
 
 
 class Field(EmbedElement):
@@ -72,3 +77,14 @@ class Table(EmbedElement):
         if inline:
             for i in range(elements, 3):
                 self.add_field(name='_ _', value='_ _')
+
+
+class Button(ReportElement):
+    def render(self, style: str, label: str, custom_id: Optional[str] = None, url: Optional[str] = None,
+               disabled: Optional[bool] = False, interaction: Optional[Interaction] = None):
+        b = discord.ui.Button(style=ButtonStyle(style), label=label, url=url, disabled=disabled)
+        if interaction:
+            b.callback(interaction=interaction)
+        if not self.env.view:
+            self.env.view = discord.ui.View()
+        self.env.view.add_item(b)
