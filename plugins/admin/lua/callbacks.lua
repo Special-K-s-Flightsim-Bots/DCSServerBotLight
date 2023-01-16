@@ -1,7 +1,7 @@
 local base   	= _G
 local config    = base.require("DCSServerBotConfig")
 
-local default_names = { 'Player', 'Spieler', 'Jugador', 'Joueur' }
+local default_names = { 'Player', 'Spieler', 'Jugador', 'Joueur', '?????' }
 
 local function locate(table, value)
     for i = 1, #table do
