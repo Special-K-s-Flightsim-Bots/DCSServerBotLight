@@ -1,11 +1,11 @@
-import os
-import string
-import time
 import discord
+import os
+import re
+import time
 import win32api
+from collections import deque
 from core import Extension, report, Server
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Optional
 
 
@@ -91,33 +91,19 @@ class Tacview(Extension):
         return os.path.exists(os.path.expandvars(self.bot.config[self.server.installation]['DCS_HOME']) +
                               r'\Mods\tech\Tacview\bin\tacview.dll')
 
-    async def onMissionEnd(self, data: dict):
-        path = Path(os.path.expandvars(self.config['path']) if 'path' in self.config else os.path.expandvars(DEFAULT_DIR))
+    async def onSimulationStop(self, data: dict):
         server: Server = self.bot.servers[data['server_name']]
-        whitelist = "-_.() %s%s" % (string.ascii_letters, string.digits)
-        filename = 'Tacview-*-DCS-'
-        filename += ''.join(c for c in server.current_mission.name if c in whitelist)
-        # wait 2 mins max for the mission to shut down
-        now = round(time.mktime(datetime.today().timetuple()))
-        file = None
-        for s in range(1, 120):
-            for file in sorted(path.glob(filename + '.txt.acmi'), key=os.path.getmtime, reverse=True):
-                try:
-                    if (now - round(file.stat().st_mtime)) < 120:
-                        break
-                except FileNotFoundError:
-                    break
-            else:
+        log = os.path.expandvars(self.bot.config[server.installation]['DCS_HOME']) + '/Logs/dcs.log'
+        exp = re.compile(r'TACVIEW.DLL (.*): Successfully saved \[(?P<filename>.*)\]')
+        filename = None
+        for line in deque(open(log, encoding='utf-8'), 10):
+            match = exp.search(line)
+            if match:
+                filename = match.group('filename')
                 break
-        if file:
-            filename = file.name.replace('.txt.', '.zip.')
         else:
-            filename += '.zip.acmi'
-        # now search the correct file
-        for s in range(1, 120):
-            for file in sorted(path.glob(filename), key=os.path.getmtime, reverse=True):
-                if (now - round(file.stat().st_mtime)) < 60:
-                    channel = self.bot.get_channel(self.config['channel'])
-                    await channel.send(file=discord.File(file.__str__()))
-                    return
+            self.log.warning("Can't find TACVIEW file to be sent.")
+        if filename:
+            channel = self.bot.get_channel(self.config['channel'])
+            await channel.send(file=discord.File(filename))
         return
