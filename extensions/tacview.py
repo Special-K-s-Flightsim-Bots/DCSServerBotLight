@@ -102,7 +102,10 @@ class Tacview(Extension):
         file = None
         for s in range(1, 120):
             for file in sorted(path.glob(filename + '.txt.acmi'), key=os.path.getmtime, reverse=True):
-                if file.exists() and (now - round(file.stat().st_mtime)) < 120:
+                try:
+                    if (now - round(file.stat().st_mtime)) < 120:
+                        break
+                except FileNotFoundError:
                     break
             else:
                 break
