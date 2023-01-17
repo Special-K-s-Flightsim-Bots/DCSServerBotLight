@@ -1,8 +1,10 @@
 from __future__ import annotations
+import discord
 from abc import ABC, abstractmethod
 from core import utils
 from core.report.env import ReportEnv
 from core.report.errors import TooManyElements
+from discord import ButtonStyle, Interaction
 from typing import Optional, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
