@@ -1,5 +1,5 @@
 import discord
-from core import report, Server
+from core import report
 
 
 class Header(report.EmbedElement):

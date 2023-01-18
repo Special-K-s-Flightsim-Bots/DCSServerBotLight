@@ -1,5 +1,4 @@
 from __future__ import annotations
-import discord
 from dataclasses import dataclass
 from discord import Embed
 from discord.ui import View
