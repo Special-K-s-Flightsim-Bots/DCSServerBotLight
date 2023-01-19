@@ -6,6 +6,7 @@ import platform
 import socket
 import string
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from discord import Interaction, app_commands
 from core import utils, Server, Status, Channel, DataObjectFactory, DBConnection
 from datetime import datetime
@@ -408,7 +409,8 @@ class DCSServerBot(commands.Bot):
                                     continue
                         for listener in self.eventListeners:
                             if command in listener.commands:
-                                self.loop.call_soon_threadsafe(asyncio.create_task, listener.processEvent(data))
+                                self.loop.call_soon_threadsafe(asyncio.create_task,
+                                                               listener.processEvent(deepcopy(data)))
                     except Exception as ex:
                         self.log.exception(ex)
                     finally:
