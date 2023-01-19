@@ -115,11 +115,4 @@ class ExtensionsInfo(report.EmbedElement):
 
 class Footer(report.EmbedElement):
     def render(self, server: Server):
-        text = self.embed.footer.text
-        for listener in self.bot.eventListeners:
-            if (type(listener).__name__ == 'UserStatisticsEventListener') and \
-                    (server.name in listener.statistics):
-                text += '\n- User statistics are enabled for this server.'
-                break
-        text += f'\n\nLast updated: {datetime.now():%y-%m-%d %H:%M:%S}'
-        self.embed.set_footer(text=text)
+        self.embed.set_footer(text=self.embed.footer.text + f'\n\nLast updated: {datetime.now():%y-%m-%d %H:%M:%S}')

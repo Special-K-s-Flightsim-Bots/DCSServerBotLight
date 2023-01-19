@@ -1,7 +1,6 @@
 import discord
 import json
 from core import DCSServerBot, Plugin, PluginRequiredError, utils, Server, Player, TEventListener, Status
-from datetime import datetime
 from discord.ext import tasks, commands
 from os import path
 from typing import Optional, TYPE_CHECKING, Type

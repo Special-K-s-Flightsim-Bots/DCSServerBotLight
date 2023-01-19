@@ -143,7 +143,7 @@ class Mission(Plugin):
                            delete_after=timeout if timeout > 0 else None)
             return
         report = Report(self.bot, self.plugin_name, 'players.json')
-        env = await report.render(server=server, players=server.players)
+        env = await report.render(server=server)
         await ctx.send(embed=env.embed, delete_after=timeout if timeout > 0 else None)
 
     @commands.command(description='Restarts the current active mission', usage='[delay] [message]')

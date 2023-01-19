@@ -19,7 +19,7 @@ README.md               => Each plugin should have a documentation
 ```
 
 ## Configuration
-Each plugin _can_ use a json file to keep its config parameters. There json files are stored in ./config
+Each plugin _can_ use a json file to keep its config parameters. There json files are stored in ./config,
 and it is a good habit to provide a sample for it.
 As each plugin might need a different configuration for each server and maybe some default configuration,
 the layout of the config files is as follows:
@@ -38,7 +38,7 @@ the layout of the config files is as follows:
 ```
 To access the configuration, you can use
 ```python
-    config: dict = self.get_config(server)
+config: dict = self.get_config(server)
 ```
 in your Plugin implementation or 
 ```
@@ -48,7 +48,7 @@ in your EventListener implementation.<p>
 **__Attention:__**<br/>
 The default configuration will be merged with the respective server specific configuration, giving the
 server specific configuration the priority over the default. If you don't want it like that, you need to
-overwrite the get_config() method in your own plugin configuration (see [punishment](./punishment/commands.py)).
+overwrite the get_config() method in your own plugin configuration.
 
 
 ## Classes
@@ -360,7 +360,7 @@ There are lots of little helpers in the DCSServerBot framework to do so.
 
 Each Plugin can implement the method 
 ```python
-    def migrate(self, version: str) -> None:
-        pass
+def migrate(self, version: str) -> None:
+    pass
 ```
 that will take care of anything that needs to be done when migrating **TO** version _version_. 
