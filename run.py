@@ -341,12 +341,15 @@ class Main:
 
 async def main():
     if not os.path.exists('config/dcsserverbot.ini'):
-        Install.install()
+        print("Please run 'python install.py' first.")
     else:
         Install.verify()
         await Main().run()
 
 if __name__ == "__main__":
+    if int(platform.python_version_tuple()[0]) != 3 or int(platform.python_version_tuple()[1]) not in range(9, 12):
+        print("You need Python 3.9 to 3.11 to run DCSServerBotLight!")
+        exit(-1)
     try:
         asyncio.run(main())
     except discord.errors.LoginFailure:
