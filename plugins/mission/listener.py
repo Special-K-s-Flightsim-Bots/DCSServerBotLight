@@ -2,6 +2,7 @@ from __future__ import annotations
 import asyncio
 from core import utils, EventListener, PersistentReport, Plugin, Report, Status, Side, Mission, Player, Channel, \
     DataObjectFactory
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -50,6 +51,7 @@ class MissionEventListener(EventListener):
 
     def __init__(self, plugin: Plugin):
         super().__init__(plugin)
+        self.afk: dict[Player, datetime] = dict()
 
     async def sendMessage(self, data):
         server: Server = self.bot.servers[data['server_name']]
@@ -122,6 +124,7 @@ class MissionEventListener(EventListener):
         if 'players' not in data:
             data['players'] = []
             server.status = Status.STOPPED
+        self.afk.clear()
         for p in data['players']:
             if p['id'] == 1:
                 continue
@@ -132,10 +135,12 @@ class MissionEventListener(EventListener):
                                                      unit_type=p['unit_type'], group_id=p['group_id'],
                                                      group_name=p['group_name'], banned=False)
             server.add_player(player)
+            if Side(p['side']) == Side.SPECTATOR:
+                self.afk[player] = datetime.now()
         self._display_mission_embed(server)
         self._display_player_embed(server)
 
-    async def onMissionLoadBegin(self, data):
+    async def onMissionLoadBegin(self, data: dict) -> None:
         server: Server = self.bot.servers[data['server_name']]
         server.status = Status.LOADING
         if not server.current_mission:
@@ -147,27 +152,27 @@ class MissionEventListener(EventListener):
             self._display_mission_embed(server)
         self._display_player_embed(server)
 
-    async def onMissionLoadEnd(self, data):
+    async def onMissionLoadEnd(self, data: dict) -> None:
         server: Server = self.bot.servers[data['server_name']]
         server.current_mission.update(data)
         self._display_mission_embed(server)
 
-    async def onSimulationStart(self, data):
+    async def onSimulationStart(self, data: dict) -> None:
         server: Server = self.bot.servers[data['server_name']]
         server.status = Status.PAUSED
         self._display_mission_embed(server)
 
-    async def onSimulationStop(self, data):
+    async def onSimulationStop(self, data: dict) -> None:
         server: Server = self.bot.servers[data['server_name']]
         server.status = Status.STOPPED
         self._display_mission_embed(server)
 
-    async def onSimulationPause(self, data):
+    async def onSimulationPause(self, data: dict) -> None:
         server: Server = self.bot.servers[data['server_name']]
         server.status = Status.PAUSED
         self._display_mission_embed(server)
 
-    async def onSimulationResume(self, data):
+    async def onSimulationResume(self, data: dict) -> None:
         server: Server = self.bot.servers[data['server_name']]
         server.status = Status.RUNNING
         self._display_mission_embed(server)
@@ -199,6 +204,8 @@ class MissionEventListener(EventListener):
             server.add_player(player)
         else:
             player.update(data)
+        # add the player to the afk list
+        self.afk[player] = datetime.now()
         self._display_mission_embed(server)
         self._display_player_embed(server)
 
@@ -209,6 +216,8 @@ class MissionEventListener(EventListener):
         player: Player = server.get_player(id=data['id'])
         if player:
             player.active = False
+            if player in self.afk:
+                del self.afk[player]
         self._display_mission_embed(server)
         self._display_player_embed(server)
 
@@ -219,11 +228,14 @@ class MissionEventListener(EventListener):
         player: Player = server.get_player(id=data['id'])
         try:
             if Side(data['side']) != Side.SPECTATOR:
+                if player in self.afk:
+                    del self.afk[player]
                 if player is not None:
                     self._send_chat_message(server, self.EVENT_TEXTS[Side(data['side'])]['change_slot'].format(
                         player.side.name if player.side != Side.SPECTATOR else 'NEUTRAL',
                         data['name'], Side(data['side']).name, data['unit_type']))
             elif player is not None:
+                self.afk[player] = datetime.now()
                 self._send_chat_message(server, self.EVENT_TEXTS[Side.SPECTATOR]['spectators'].format(player.side.name,
                                                                                                       data['name']))
         finally:
@@ -248,6 +260,8 @@ class MissionEventListener(EventListener):
                 self._send_chat_message(server, self.EVENT_TEXTS[player.side]['disconnect'].format(player.name))
             finally:
                 player.active = False
+                if player in self.afk:
+                    del self.afk[player]
                 self._display_mission_embed(server)
                 self._display_player_embed(server)
         elif data['eventName'] == 'friendly_fire' and data['arg1'] != data['arg3']:
