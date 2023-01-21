@@ -371,6 +371,8 @@ class Mission(Plugin):
             if not missions:
                 await ctx.send("You can't delete the (only) running mission.")
                 return
+        else:
+            original = missions = server.settings['missionList']
 
             name = await utils.selection(ctx,
                                          placeholder="Select the mission to delete",
@@ -387,8 +389,6 @@ class Mission(Plugin):
                             os.remove(mission)
                             await ctx.send(f'Mission "{name}" deleted.')
                     break
-        else:
-            return await ctx.send('Server ' + server.name + ' is not running.')
 
     @commands.command(description='Pauses the current running mission')
     @utils.has_role('DCS Admin')
