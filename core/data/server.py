@@ -7,6 +7,7 @@ import os
 import socket
 import subprocess
 import uuid
+import win32con
 from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -226,8 +227,10 @@ class Server(DataObject):
             except Exception as ex:
                 # TODO: DSMC workaround
                 self.log.debug(f"Exception while reading {path}:\n{ex}")
-                self.log.info('  => DSMC detected.')
                 self._settings = utils.dsmc_parse_settings(path)
+                if not self._settings:
+                    self.log.error("- Error while parsing serverSettings.lua!")
+                    raise ex
         return self._settings
 
     def get_current_mission_file(self) -> Optional[str]:
@@ -305,8 +308,17 @@ class Server(DataObject):
     async def startup(self) -> None:
         self.log.debug(r'Launching DCS server with: "{}\bin\DCS.exe" --server --norender -w {}'.format(
             os.path.expandvars(self.bot.config['DCS']['DCS_INSTALLATION']), self.installation))
-        p = subprocess.Popen(['DCS.exe', '--server', '--norender', '-w', self.installation],
-                             executable=os.path.expandvars(self.bot.config['DCS']['DCS_INSTALLATION']) + r'\bin\DCS.exe')
+        if self.bot.config.getboolean(self.installation, 'START_MINIMIZED'):
+            info = subprocess.STARTUPINFO()
+            info.dwFlags = subprocess.STARTF_USESHOWWINDOW
+            info.wShowWindow = win32con.SW_MINIMIZE
+        else:
+            info = None
+        p = subprocess.Popen(
+            ['DCS.exe', '--server', '--norender', '-w', self.installation],
+            executable=os.path.expandvars(self.bot.config['DCS']['DCS_INSTALLATION']) + r'\bin\DCS.exe',
+            startupinfo=info
+        )
         with suppress(Exception):
             self.process = Process(p.pid)
         timeout = 300 if self.bot.config.getboolean('BOT', 'SLOW_SYSTEM') else 180
@@ -364,13 +376,16 @@ class Server(DataObject):
             await self.start()
 
     def addMission(self, path: str) -> None:
+        path = os.path.normpath(path)
+        if path in self.settings['missionList']:
+            return
         if self.status in [Status.STOPPED, Status.PAUSED, Status.RUNNING]:
             self.sendtoDCS({"command": "addMission", "path": path})
             self._settings = None
         else:
-            missions = self.settings['missionList']
-            missions.append(path)
-            self.settings['missionList'] = missions
+            missions: set[str] = set(self.settings['missionList'])
+            missions.add(path)
+            self.settings['missionList'] = list(missions)
 
     def deleteMission(self, mission_id: int) -> None:
         if self.status in [Status.PAUSED, Status.RUNNING] and self.mission_id == mission_id:
