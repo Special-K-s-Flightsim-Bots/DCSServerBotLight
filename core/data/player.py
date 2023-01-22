@@ -31,9 +31,6 @@ class Player(DataObject):
         if self.id == 1:
             self.active = False
             return
-            
-    def __hash__(self):
-        return self.ucid.__hash__()
 
     def is_active(self) -> bool:
         return self.active
