@@ -8,7 +8,7 @@ import string
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from discord import Interaction, app_commands
-from core import utils, Server, Status, Channel, DataObjectFactory, DBConnection
+from core import utils, Server, Status, Channel, DataObjectFactory, DBConnection, Player
 from datetime import datetime
 from discord.ext import commands
 from queue import Queue
@@ -288,6 +288,13 @@ class DCSServerBot(commands.Bot):
 
     def get_channel(self, channel_id: int):
         return super().get_channel(channel_id) if channel_id != -1 else None
+    
+    def get_player_by_ucid(self, ucid: str) -> Optional[Player]:
+        for server in self.servers.values():
+            player = server.get_player(ucid=ucid, active=True)
+            if player:
+                return player
+        return None
 
     def register_eventListener(self, listener: EventListener):
         self.log.debug(f'- Registering EventListener {type(listener).__name__}')

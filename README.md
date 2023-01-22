@@ -26,15 +26,16 @@ These commands can be used to administrate the bot itself.
 | .rename     | newname   | admin-channel | Admin   | Renames a DCS server. DCSServerBot auto-detects server renaming, too.                                                                                                                                                     |
 
 ### List of supported Plugins
-| Plugin        | Scope                                                                | Optional | Dependent on | Documentation                              |
-|---------------|----------------------------------------------------------------------|----------|--------------|--------------------------------------------|
-| Mission       | Handling of missions, compared to the WebGUI.                        | no       |              | [README](./plugins/mission/README.md)      |
-| Admin         | Admin commands to manage your DCS server.                            | yes      |              | [README](./plugins/admin/README.md)        |
-| Scheduler     | Autostart / -stop of servers or missions, change weather, etc.       | yes      | Mission      | [README](./plugins/scheduler/README.md)    |
-| GameMaster    | Interaction with the running mission (inform users, set flags, etc). | yes      |              | [README](./plugins/gamemaster/README.md)   |
-| Cloud         | Connection to the DGSA Global Ban System.                            | yes      |              | [README](./plugins/cloud/README.md)        |
-| MOTD          | Generates a message of the day.                                      | yes      |              | [README](./plugins/motd/README.md)         |
-| FunkMan       | Support for Moose.FunkMan .                                          | yes      |              | [README](./plugins/funkman/README.md)      |
+| Plugin      | Scope                                                                 | Optional | Dependent on | Documentation                              |
+|-------------|-----------------------------------------------------------------------|----------|--------------|--------------------------------------------|
+| Mission     | Handling of missions, compared to the WebGUI.                         | no       |              | [README](./plugins/mission/README.md)      |
+| Admin       | Admin commands to manage your DCS server.                             | yes      |              | [README](./plugins/admin/README.md)        |
+| Scheduler   | Autostart / -stop of servers or missions, change weather, etc.        | yes      | Mission      | [README](./plugins/scheduler/README.md)    |
+| GameMaster  | Interaction with the running mission (inform users, set flags, etc).  | yes      |              | [README](./plugins/gamemaster/README.md)   |
+| Cloud       | Connection to the DGSA Global Ban System.                             | yes      |              | [README](./plugins/cloud/README.md)        |
+| MOTD        | Generates a message of the day.                                       | yes      |              | [README](./plugins/motd/README.md)         |
+| FunkMan     | Support for Moose.FunkMan .                                           | yes      |              | [README](./plugins/funkman/README.md)      |
+| Commands    | Map executables or shell commands to custom discord commands.         | yes      |              | [README](./plugins/commands/README.md)     |
 
 ### In case you want to write your own plugin ...
 There is a sample in the plugins/samples subdirectory, that will guide you through the steps. If you want your plugin to be added to the distribution, just contact me via the contact details below.
