@@ -19,7 +19,7 @@ class ValueNotInRange(Exception):
 
 class TooManyElements(Exception):
     def __init__(self, number: int):
-        super().__init__(f'The SQL provided returns {number} columns. Allowed is a maximum of 3.')
+        super().__init__(f'Only 3 elements allowed, we got {number}.')
 
 
 class UnknownValue(Exception):
