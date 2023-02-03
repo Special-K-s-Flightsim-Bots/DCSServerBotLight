@@ -10,7 +10,7 @@ class AdminEventListener(EventListener):
             server.sendtoDCS({
                 "command": "ban",
                 "ucid": data['ucid'],
-                "period": data['period'] if 'period' in data else 0,
+                "period": data['period'] if 'period' in data else 365*86400,
                 "reason": data['reason']
             })
 

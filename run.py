@@ -49,6 +49,7 @@ class Main:
         self.config = self.read_config()
         self.log = self.init_logger()
         self.log.info(f'DCSServerBotLight v{BOT_VERSION}.{SUB_VERSION} starting up ...')
+        self.log.info(f'- Python version {platform.python_version()} detected.')
         if self.config.getboolean('BOT', 'AUTOUPDATE') and self.upgrade():
             self.log.warning('- Restart needed => exiting.')
             exit(-1)

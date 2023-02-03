@@ -50,14 +50,17 @@ class Scheduler(Plugin):
         super().install()
         for _, installation in utils.findDCSInstallations():
             if installation in self.bot.config:
-                cfg = Autoexec(bot=self.bot, installation=installation)
-                if cfg.crash_report_mode is None:
-                    self.log.info('  => Adding crash_report_mode = "silent" to autoexec.cfg')
-                    cfg.crash_report_mode = 'silent'
-                elif cfg.crash_report_mode != 'silent':
-                    self.log.warning('=> crash_report_mode is NOT "silent" in your autoexec.cfg! The Scheduler will '
-                                     'not work properly on DCS crashes, please change it manually to "silent" to '
-                                     'avoid that.')
+                try:
+                    cfg = Autoexec(bot=self.bot, installation=installation)
+                    if cfg.crash_report_mode is None:
+                        self.log.info('  => Adding crash_report_mode = "silent" to autoexec.cfg')
+                        cfg.crash_report_mode = 'silent'
+                    elif cfg.crash_report_mode != 'silent':
+                        self.log.warning('=> crash_report_mode is NOT "silent" in your autoexec.cfg! The Scheduler will '
+                                         'not work properly on DCS crashes, please change it manually to "silent" to '
+                                         'avoid that.')
+                except Exception as ex:
+                    self.log.error(f"  => Error while parsing autoexec.cfg: {ex.__repr__()}")
 
     def migrate(self, version: str):
         if version != '1.1' or 'SRS_INSTALLATION' not in self.bot.config['DCS']:
@@ -422,7 +425,10 @@ class Scheduler(Plugin):
     @staticmethod
     def check_affinity(server: Server, config: dict):
         if not server.process:
-            server.process = utils.find_process('DCS.exe', server.installation)
+            for exe in ['DCS_server.exe', 'DCS.exe']:
+                server.process = utils.find_process(exe, server.installation)
+                if server.process:
+                    break
         if server.process:
             server.process.cpu_affinity(config['affinity'])
 

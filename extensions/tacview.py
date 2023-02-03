@@ -1,3 +1,4 @@
+import asyncio
 import discord
 import os
 import re
@@ -92,11 +93,13 @@ class Tacview(Extension):
                               r'\Mods\tech\Tacview\bin\tacview.dll')
 
     async def onSimulationStop(self, data: dict):
+        if 'channel' not in self.config:
+            return
         server: Server = self.bot.servers[data['server_name']]
         log = os.path.expandvars(self.bot.config[server.installation]['DCS_HOME']) + '/Logs/dcs.log'
         exp = re.compile(r'TACVIEW.DLL (.*): Successfully saved \[(?P<filename>.*)\]')
         filename = None
-        for line in deque(open(log, encoding='utf-8'), 10):
+        for line in deque(open(log, encoding='utf-8'), 50):
             match = exp.search(line)
             if match:
                 filename = match.group('filename')
@@ -104,6 +107,12 @@ class Tacview(Extension):
         else:
             self.log.warning("Can't find TACVIEW file to be sent.")
         if filename:
-            channel = self.bot.get_channel(self.config['channel'])
-            await channel.send(file=discord.File(filename))
+            for i in range(0, 60):
+                if os.path.exists(filename):
+                    channel = self.bot.get_channel(self.config['channel'])
+                    await channel.send(file=discord.File(filename))
+                    break
+                await asyncio.sleep(1)
+            else:
+                self.log.warning(f"Can't find TACVIEW file {filename} after 1 min of waiting.")
         return

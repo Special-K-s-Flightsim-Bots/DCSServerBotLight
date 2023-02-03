@@ -114,11 +114,11 @@ class Install:
 
         config = ConfigParser()
         if path.exists('config/default.ini'):
-            config.read('config/default.ini')
+            config.read('config/default.ini', encoding='utf-8')
         else:
             raise Exception("Your installation is broken, default.ini is missing!")
         if path.exists('config/dcsserverbot.ini'):
-            config.read('config/dcsserverbot.ini')
+            config.read('config/dcsserverbot.ini', encoding='utf-8')
         else:
             # should never happen as the file is being auto-generated
             raise Exception('dcsserverbot.ini is not there. Please create such a file according to the documentation.')
@@ -173,6 +173,10 @@ class Install:
                                                "webrtc_port (""10309)!")
                     ports.add(config[installation]['DCS_PORT'])
                 if not path.exists(os.path.expandvars(config[installation]['DCS_HOME'])):
+                    # ignore missing directories in the DCS section, as people might have a serverSettings.lua in their
+                    # DCS folder but no server configured
+                    if installation == 'DCS':
+                        continue
                     raise InvalidParameter(installation, 'DCS_HOME', 'Path does not exist.')
                 for channel in ['CHAT_CHANNEL', 'ADMIN_CHANNEL', 'STATUS_CHANNEL']:
                     if not check_channel(config[installation][channel]):

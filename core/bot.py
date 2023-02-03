@@ -328,7 +328,10 @@ class DCSServerBot(commands.Bot):
                                         installation=installation, host=self.config[installation]['DCS_HOST'],
                                         port=self.config[installation]['DCS_PORT'])
         # set the PID
-        server.process = utils.find_process('DCS.exe', server.installation)
+        for exe in ['DCS_server.exe', 'DCS.exe']:
+            server.process = utils.find_process(exe, server.installation)
+            if server.process:
+                break
         server.options = data['options']
         server.dcs_version = data['dcs_version']
         # update the database and check for server name changes
@@ -359,7 +362,7 @@ class DCSServerBot(commands.Bot):
         if self.master and len(self.servers) == 1 and self.master_only:
             return list(self.servers.values())[0]
         for server_name, server in self.servers.items():
-            if isinstance(ctx, discord.ext.commands.context.Context) or isinstance(ctx, discord.Interaction) \
+            if isinstance(ctx, commands.Context) or isinstance(ctx, discord.Interaction) \
                     or isinstance(ctx, discord.Message):
                 if server.status == Status.UNREGISTERED:
                     continue
