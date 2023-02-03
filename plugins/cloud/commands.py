@@ -1,15 +1,17 @@
 # noinspection PyPackageRequirements
 import aiohttp
 import asyncio
+import discord
 import os
 import shutil
+
 from core import Plugin, DCSServerBot, utils, TEventListener, Status
 from discord.ext import commands, tasks
 from typing import Type, Any
 from .listener import CloudListener
 
 
-class CloudHandler(Plugin):
+class CloudHandlerAgent(Plugin):
 
     def __init__(self, bot: DCSServerBot, eventlistener: Type[TEventListener] = None):
         super().__init__(bot, eventlistener)
@@ -29,10 +31,12 @@ class CloudHandler(Plugin):
             "guild_name": self.bot.guilds[0].name,
             "owner_id": self.bot.owner_id
         }
-        self.cloud_bans.start()
+        if 'dcs-ban' not in self.config or self.config['dcs-ban']:
+            self.cloud_bans.start()
 
     async def cog_unload(self):
-        self.cloud_bans.cancel()
+        if 'dcs-ban' not in self.config or self.config['dcs-ban']:
+            self.cloud_bans.cancel()
         asyncio.create_task(self.session.close())
         await super().cog_unload()
 
@@ -70,9 +74,10 @@ class CloudHandler(Plugin):
     @tasks.loop(minutes=15.0)
     async def cloud_bans(self):
         try:
-            for ban in (await self.get('bans')):
-                for server in self.bot.servers.values():
-                    if server.status in [Status.RUNNING, Status.PAUSED, Status.STOPPED]:
+            bans = await self.get('bans')
+            for server in self.bot.servers.values():
+                if server.status in [Status.RUNNING, Status.PAUSED, Status.STOPPED]:
+                    for ban in bans:
                         server.sendtoDCS({
                             "command": "ban",
                             "ucid": ban["ucid"],
@@ -82,8 +87,36 @@ class CloudHandler(Plugin):
             self.log.error('- Cloud service not responding.')
 
 
+class CloudHandlerMaster(CloudHandlerAgent):
+
+    def __init__(self, bot: DCSServerBot, eventlistener: Type[TEventListener] = None):
+        super().__init__(bot, eventlistener)
+        if 'discord-ban' not in self.config or self.config['discord-ban']:
+            self.master_bans.start()
+
+    async def cog_unload(self):
+        if 'discord-ban' not in self.config or self.config['discord-ban']:
+            self.master_bans.cancel()
+        await super().cog_unload()
+        
+    @tasks.loop(minutes=15.0)
+    async def master_bans(self):
+        try:
+            for ban in (await self.get('discord-bans')):
+                member: discord.Member = self.bot.guilds[0].get_member(ban['discord_id'])
+                if member:
+                    await member.ban(reason=ban['reason'])
+        except aiohttp.ClientError:
+            self.log.error('- Cloud service not responding.')
+        except discord.Forbidden:
+            self.log.warn('- DCSServerBot does not have the permission to ban users.')
+
+
 async def setup(bot: DCSServerBot):
     if not os.path.exists('config/cloud.json'):
         bot.log.info('No cloud.json found, copying the sample.')
         shutil.copyfile('config/cloud.json.sample', 'config/cloud.json')
-    await bot.add_cog(CloudHandler(bot, CloudListener))
+    if bot.config.getboolean('BOT', 'MASTER') is True:
+        await bot.add_cog(CloudHandlerMaster(bot, CloudListener))
+    else:
+        await bot.add_cog(CloudHandlerAgent(bot, CloudListener))

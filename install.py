@@ -114,11 +114,11 @@ class Install:
 
         config = ConfigParser()
         if path.exists('config/default.ini'):
-            config.read('config/default.ini')
+            config.read('config/default.ini', encoding='utf-8')
         else:
             raise Exception("Your installation is broken, default.ini is missing!")
         if path.exists('config/dcsserverbot.ini'):
-            config.read('config/dcsserverbot.ini')
+            config.read('config/dcsserverbot.ini', encoding='utf-8')
         else:
             # should never happen as the file is being auto-generated
             raise Exception('dcsserverbot.ini is not there. Please create such a file according to the documentation.')

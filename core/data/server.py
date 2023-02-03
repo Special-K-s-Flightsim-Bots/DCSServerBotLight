@@ -330,8 +330,15 @@ class Server(DataObject):
         self.name = new_name
 
     async def startup(self) -> None:
-        self.log.debug(r'Launching DCS server with: "{}\bin\DCS.exe" --server --norender -w {}'.format(
-            os.path.expandvars(self.bot.config['DCS']['DCS_INSTALLATION']), self.installation))
+        basepath = os.path.expandvars(self.bot.config['DCS']['DCS_INSTALLATION'])
+        for exe in ['DCS_server.exe', 'DCS.exe']:
+            path = basepath + f'\\bin\\{exe}'
+            if os.path.exists(path):
+                break
+        else:
+            self.log.error(f"No executable found to start a DCS server in {basepath}!")
+            return
+        self.log.debug(r'Launching DCS server with: "{}" --server --norender -w {}'.format(path, self.installation))
         if self.bot.config.getboolean(self.installation, 'START_MINIMIZED'):
             info = subprocess.STARTUPINFO()
             info.dwFlags = subprocess.STARTF_USESHOWWINDOW
@@ -339,9 +346,7 @@ class Server(DataObject):
         else:
             info = None
         p = subprocess.Popen(
-            ['DCS.exe', '--server', '--norender', '-w', self.installation],
-            executable=os.path.expandvars(self.bot.config['DCS']['DCS_INSTALLATION']) + r'\bin\DCS.exe',
-            startupinfo=info
+            [exe, '--server', '--norender', '-w', self.installation], executable=path, startupinfo=info
         )
         with suppress(Exception):
             self.process = Process(p.pid)
