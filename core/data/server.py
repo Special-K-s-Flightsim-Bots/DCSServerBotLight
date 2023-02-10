@@ -4,6 +4,7 @@ import discord
 import json
 import luadata
 import os
+import psutil
 import socket
 import subprocess
 import uuid
@@ -363,7 +364,7 @@ class Server(DataObject):
         if self.process and self.process.is_running():
             try:
                 self.process.wait(timeout)
-            except subprocess.TimeoutExpired:
+            except psutil.TimeoutExpired:
                 self.process.kill()
         # make sure, Windows did all cleanups
         if slow_system:
