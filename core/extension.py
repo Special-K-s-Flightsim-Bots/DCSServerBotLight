@@ -16,6 +16,7 @@ class Extension(ABC):
         self.config: dict = config
         self.server: Server = server
         self.locals: dict = self.load_config()
+        self.lastrun = datetime.now()
 
     def load_config(self) -> Optional[dict]:
         return dict()
@@ -38,7 +39,7 @@ class Extension(ABC):
     async def shutdown(self) -> bool:
         return False
 
-    async def is_running(self) -> bool:
+    def is_running(self) -> bool:
         return True
 
     @property
@@ -53,8 +54,7 @@ class Extension(ABC):
     def render(self, embed: report.EmbedElement, param: Optional[dict] = None):
         raise NotImplementedError()
 
-    @staticmethod
-    def schedule(config: dict, lastrun: Optional[datetime] = None):
+    def schedule(self):
         pass
 
     def verify(self) -> bool:

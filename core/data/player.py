@@ -1,4 +1,5 @@
 from __future__ import annotations
+from core import utils
 from core.data.dataobject import DataObject, DataObjectFactory
 from core.data.const import Side
 from dataclasses import dataclass, field
@@ -40,6 +41,10 @@ class Player(DataObject):
 
     def is_banned(self) -> bool:
         return self.banned
+
+    @property
+    def display_name(self) -> str:
+        return utils.escape_string(self.name)
 
     def update(self, data: dict):
         if 'id' in data:

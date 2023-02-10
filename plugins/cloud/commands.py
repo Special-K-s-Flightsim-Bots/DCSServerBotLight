@@ -78,11 +78,13 @@ class CloudHandlerAgent(Plugin):
             for server in self.bot.servers.values():
                 if server.status in [Status.RUNNING, Status.PAUSED, Status.STOPPED]:
                     for ban in bans:
-                        server.sendtoDCS({
-                            "command": "ban",
-                            "ucid": ban["ucid"],
-                            "reason": ban["reason"]
-                        })
+                        player = server.get_player(ucid=ban["ucid"], active=True)
+                        if player:
+                            server.sendtoDCS({
+                                "command": "ban",
+                                "ucid": ban["ucid"],
+                                "reason": ban["reason"]
+                            })
         except aiohttp.ClientError:
             self.log.error('- Cloud service not responding.')
 
@@ -91,7 +93,8 @@ class CloudHandlerMaster(CloudHandlerAgent):
 
     def __init__(self, bot: DCSServerBot, eventlistener: Type[TEventListener] = None):
         super().__init__(bot, eventlistener)
-        if 'discord-ban' not in self.config or self.config['discord-ban']:
+        if ('dcs-ban' not in self.config or self.config['dcs-ban']) and \
+                ('discord-ban' not in self.config or self.config['discord-ban']):
             self.master_bans.start()
 
     async def cog_unload(self):
@@ -106,7 +109,7 @@ class CloudHandlerMaster(CloudHandlerAgent):
             users_to_ban = [await self.bot.fetch_user(x['discord_id']) for x in bans]
             guild = self.bot.guilds[0]
             guild_bans = [entry async for entry in guild.bans()]
-            banned_users = [x.user for x in guild_bans if x.reason.startswith('DGSA:')]
+            banned_users = [x.user for x in guild_bans if x.reason and x.reason.startswith('DGSA:')]
             # unban users that should not be banned anymore
             for user in [x for x in banned_users if x not in users_to_ban]:
                 await guild.unban(user, reason='DGSA: ban revoked.')

@@ -93,13 +93,16 @@ class Agent(Plugin):
             message = await ctx.send('Starting up DCS servers again ...')
         else:
             self.log.info('DCS World updated to the latest version.\nStarting up DCS servers again ...')
-        for server_name, server in self.bot.servers.items():
+        for server in self.bot.servers.values():
             if server not in servers:
                 # let the scheduler do its job
                 server.maintenance = False
             else:
-                # the server was running before (being in maintenance mode), so start it again
-                await server.startup()
+                try:
+                    # the server was running before (being in maintenance mode), so start it again
+                    await server.startup()
+                except asyncio.TimeoutError:
+                    await ctx.send(f'Timeout while starting {server.display_name}, please check it manually!')
         self.update_pending = False
         if message:
             await message.delete()
@@ -138,7 +141,7 @@ class Agent(Plugin):
                 await self.bot.audit(f"changed password", user=ctx.message.author, server=server)
                 await ctx.send('Password has been changed.')
             else:
-                await ctx.send(f"Server \"{server.name}\" has to be stopped or shut down to change the password.")
+                await ctx.send(f"Server \"{server.display_name}\" has to be stopped or shut down to change the password.")
 
     @commands.command(description='Change the configuration of a DCS server', aliases=['conf'])
     @utils.has_role('DCS Admin')
@@ -161,7 +164,8 @@ class Agent(Plugin):
                                     default=server.settings['description'], max_length=2000, required=False)
             password = TextInput(label="Password", placeholder="n/a", default=server.settings['password'],
                                  max_length=20, required=False)
-            max_player = TextInput(label="Max Players", default=server.settings['maxPlayers'], max_length=3, required=True)
+            max_player = TextInput(label="Max Players", default=server.settings['maxPlayers'], max_length=3,
+                                   required=True)
 
             async def on_submit(s, interaction: discord.Interaction):
                 if s.name.value != server.name:
@@ -172,7 +176,8 @@ class Agent(Plugin):
                 server.settings['description'] = s.description.value
                 server.settings['password'] = s.password.value
                 server.settings['maxPlayers'] = int(s.max_player.value)
-                await interaction.response.send_message(f'Server configuration for server "{server.name}" updated.')
+                await interaction.response.send_message(
+                    f'Server configuration for server "{server.display_name}" updated.')
 
         class ConfigView(View):
             @discord.ui.button(label='Yes', style=discord.ButtonStyle.green, custom_id='cfg_yes', emoji='✅')
@@ -197,7 +202,7 @@ class Agent(Plugin):
                     return True
 
         view = ConfigView()
-        embed = discord.Embed(title=f'Do you want to change the configuration of server "{server.name}"?')
+        embed = discord.Embed(title=f'Do you want to change the configuration of server "{server.display_name}"?')
         msg = await ctx.send(embed=embed, view=view)
         await view.wait()
         await msg.delete()
@@ -217,7 +222,7 @@ class Agent(Plugin):
             return
         players = [x for x in server.get_active_players() if name.casefold() in x.name.casefold()]
         if len(players) > 25:
-            await ctx.send(f'Usage: {ctx.prefix}{ctx.command.name} <user>')
+            await ctx.send(f'Usage: {ctx.prefix}kick <user>')
             return
         elif len(players) == 0:
             await ctx.send(f"No player \"{name}\" found.")
@@ -233,8 +238,8 @@ class Agent(Plugin):
             async def on_submit(self, interaction: discord.Interaction):
                 reason = self.reason.value or 'n/a'
                 server.kick(self.player, reason)
-                await server.bot.audit(f"kicked player {self.player.name}" + (f' with reason "{self.reason}".' if reason != 'n/a' else '.'), user=interaction.user)
-                await interaction.response.send_message(f"Kicked player {self.player.name}.")
+                await server.bot.audit(f"kicked player {self.player.display_name}" + (f' with reason "{self.reason}".' if reason != 'n/a' else '.'), user=interaction.user)
+                await interaction.response.send_message(f"Kicked player {self.player.display_name}.")
 
         class KickView(View):
             @discord.ui.select(placeholder="Select a player to be kicked", options=[SelectOption(label=x.name, value=str(players.index(x))) for x in players])
@@ -265,7 +270,7 @@ class Agent(Plugin):
         embed = discord.Embed(title='List of Bans', color=discord.Color.blue())
         ucids = names = until = ''
         for ban in rows:
-            names += ban['name'] + '\n'
+            names += utils.escape_string(ban['name']) + '\n'
             ucids += ban['ucid'] + '\n'
             until += f"<t:{ban['banned_until']}:R>\n"
         embed.add_field(name='UCID', value=ucids)
@@ -320,12 +325,13 @@ class Agent(Plugin):
             async def on_submit(self, interaction: discord.Interaction):
                 period = int(self.period.value)
                 server.ban(self.player, self.reason.value, period)
-                await server.bot.audit(f"banned player {self.player.name} with reason {self.reason.value} for {utils.format_time(period)}.",
+                await server.bot.audit(f"banned player {self.player.display_name} with reason {self.reason.value} for {utils.format_time(period)}.",
                                        user=interaction.user)
                 await interaction.response.send_message(f"Banned player {self.player.name}.")
 
         class BanView(View):
-            @discord.ui.select(placeholder="Select a player to be banned", options=[SelectOption(label=x.name, value=str(players.index(x))) for x in players])
+            @discord.ui.select(placeholder="Select a player to be banned", options=[
+                SelectOption(label=x.display_name,value=str(players.index(x))) for x in players])
             async def callback(self, interaction: Interaction, select: Select):
                 modal = BanModal(players[int(select.values[0])])
                 await interaction.response.send_modal(modal)
