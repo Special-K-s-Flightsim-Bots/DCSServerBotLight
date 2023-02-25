@@ -282,7 +282,7 @@ function dcsbot.getWeatherInfo(json)
 		pressureMM = pressureQFE * 0.7500637554192,
 		pressureIN = pressureQFE * 0.0295300586467
 	}
-	local pressureQNH = pressureQFE + pressureQFE * (10^(position.y / (18429.1 + 67.53 * temp + 0.003 * position.y)) - 1)
+	local pressureQNH = pressureQFE + position.y * 0.12017
 	msg.qnh = {
 		pressureHPA = pressureQNH,
 		pressureMM = pressureQNH * 0.7500637554192,
@@ -316,18 +316,6 @@ function dcsbot.getWeatherInfo(json)
 	utils.sendBotTable(msg, json.channel)
 end
 
-function basicSerialize(s)
-	if s == nil then
-		return "\"\""
-	else
-		if ((type(s) == 'number') or (type(s) == 'boolean') or (type(s) == 'function') or (type(s) == 'table') or (type(s) == 'userdata') ) then
-			return tostring(s)
-		elseif type(s) == 'string' then
-			return string.format('%q', s)
-		end
-  end
-end
-
 function dcsbot.sendChatMessage(json)
     log.write('DCSServerBot', log.DEBUG, 'Mission: sendChatMessage()')
 	local message = json.message
@@ -351,17 +339,7 @@ function dcsbot.sendPopupMessage(json)
 	end
 	time = json.time or 10
 	to = json.to or 'all'
-	net.dostring_in('mission', 'a_do_script(' .. basicSerialize('dcsbot.sendPopupMessage("' .. to .. '", ' .. basicSerialize(message) .. ', ' .. tostring(time) ..')') .. ')')
-end
-
-function dcsbot.do_script(json)
-    log.write(')DCSServerBot', log.DEBUG, 'Mission: do_script()')
-    net.dostring_in('mission', 'a_do_script(' .. basicSerialize(json.script) .. ')')
-end
-
-function dcsbot.do_script_file(json)
-    log.write('DCSServerBot', log.DEBUG, 'Mission: do_script_file()')
-    net.dostring_in('mission', 'a_do_script("dofile(\\"' .. lfs.writedir():gsub('\\', '/') .. json.file .. '\\")")')
+	net.dostring_in('mission', 'a_do_script(' .. utils.basicSerialize('dcsbot.sendPopupMessage("' .. to .. '", ' .. utils.basicSerialize(message) .. ', ' .. tostring(time) ..')') .. ')')
 end
 
 function dcsbot.uploadUserRoles(json)

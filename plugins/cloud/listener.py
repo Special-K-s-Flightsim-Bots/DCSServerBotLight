@@ -1,4 +1,3 @@
-# noinspection PyPackageRequirements
 import aiohttp
 from core import EventListener, Server
 

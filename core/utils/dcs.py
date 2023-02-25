@@ -1,4 +1,3 @@
-# noinspection PyPackageRequirements
 import aiohttp
 import luadata
 import math
@@ -70,11 +69,16 @@ async def getLatestVersion(branch: str) -> Optional[str]:
     return None
 
 
-def desanitize(self) -> None:
+def desanitize(self, _filename: str = None) -> None:
     # Sanitizing MissionScripting.lua
-    filename = os.path.expandvars(config['DCS']['DCS_INSTALLATION']) + r'\Scripts\MissionScripting.lua'
+    if not _filename:
+        filename = os.path.expandvars(config['DCS']['DCS_INSTALLATION']) + r'\Scripts\MissionScripting.lua'
+    else:
+        filename = _filename
     backup = filename.replace('.lua', '.bak')
     if os.path.exists('./config/MissionScripting.lua'):
+        if _filename:
+            self.log.error('SLmod is installed, it will overwrite your custom MissionScripting.lua again!')
         self.log.info('- Sanitizing MissionScripting')
         shutil.copyfile(filename, backup)
         shutil.copyfile('./config/MissionScripting.lua', filename)
@@ -88,15 +92,18 @@ def desanitize(self) -> None:
             if line.lstrip().startswith('--'):
                 output.append(line)
                 continue
-            if "sanitizeModule('io')" in line or "sanitizeModule('lfs')" in line:
+            if "sanitizeModule('os')" in line or "sanitizeModule('io')" in line or "sanitizeModule('lfs')" in line:
                 line = line.replace('sanitizeModule', '--sanitizeModule')
                 dirty = True
             elif "_G['require'] = nil" in line or "_G['package'] = nil" in line:
                 line = line.replace('_G', '--_G')
                 dirty = True
+            elif "require = nil" in line:
+                line = line.replace('require', '--require')
+                dirty = True
             output.append(line)
         if dirty:
-            self.log.info('- Desanitizing MissionScripting')
+            self.log.info(f'- Desanitizing {filename}')
             # backup original file
             shutil.copyfile(filename, backup)
             with open(filename, 'w') as outfile:

@@ -1,4 +1,3 @@
-# noinspection PyPackageRequirements
 import aiohttp
 import asyncio
 import discord
@@ -180,16 +179,13 @@ class Agent(Plugin):
                     f'Server configuration for server "{server.display_name}" updated.')
 
         class ConfigView(View):
-            @discord.ui.button(label='Yes', style=discord.ButtonStyle.green, custom_id='cfg_yes', emoji='✅')
+            @discord.ui.button(label='Yes', style=discord.ButtonStyle.green, custom_id='cfg_yes')
             async def on_yes(self, interaction: Interaction, button: Button):
                 modal = ConfigModal()
-                try:
-                    await interaction.response.send_modal(modal)
-                except Exception as ex:
-                    print(ex)
+                await interaction.response.send_modal(modal)
                 self.stop()
 
-            @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary, custom_id='cfg_cancel', emoji='❌')
+            @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red, custom_id='cfg_cancel')
             async def on_cancel(self, interaction: Interaction, button: Button):
                 await interaction.response.send_message('Aborted.')
                 self.stop()
@@ -202,7 +198,7 @@ class Agent(Plugin):
                     return True
 
         view = ConfigView()
-        embed = discord.Embed(title=f'Do you want to change the configuration of server "{server.display_name}"?')
+        embed = discord.Embed(title=f'Do you want to change the configuration of server\n"{server.display_name}"?')
         msg = await ctx.send(embed=embed, view=view)
         await view.wait()
         await msg.delete()
@@ -238,17 +234,21 @@ class Agent(Plugin):
             async def on_submit(self, interaction: discord.Interaction):
                 reason = self.reason.value or 'n/a'
                 server.kick(self.player, reason)
-                await server.bot.audit(f"kicked player {self.player.display_name}" + (f' with reason "{self.reason}".' if reason != 'n/a' else '.'), user=interaction.user)
+                await server.bot.audit(f"kicked player {self.player.display_name}" +
+                                       (f' with reason "{self.reason}".' if reason != 'n/a' else '.'),
+                                       user=interaction.user)
                 await interaction.response.send_message(f"Kicked player {self.player.display_name}.")
 
         class KickView(View):
-            @discord.ui.select(placeholder="Select a player to be kicked", options=[SelectOption(label=x.name, value=str(players.index(x))) for x in players])
+            @discord.ui.select(placeholder="Select a player to be kicked",
+                               options=[SelectOption(label=x.name,
+                                                     value=str(players.index(x))) for x in players])
             async def callback(self, interaction: Interaction, select: Select):
                 modal = KickModal(players[int(select.values[0])])
                 await interaction.response.send_modal(modal)
                 self.stop()
 
-            @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary, emoji='❌')
+            @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
             async def cancel(self, interaction: Interaction, button: Button):
                 await interaction.response.send_message('Aborted.')
                 self.stop()
@@ -337,7 +337,7 @@ class Agent(Plugin):
                 await interaction.response.send_modal(modal)
                 self.stop()
 
-            @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary, emoji='❌')
+            @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
             async def cancel(self, interaction: Interaction, button: Button):
                 await interaction.response.send_message('Aborted.')
                 self.stop()
@@ -475,7 +475,7 @@ class Agent(Plugin):
             await interaction.response.defer()
 
         select1.callback = _choice
-        button = Button(label='Cancel', emoji='❌')
+        button = Button(label='Cancel', style=discord.ButtonStyle.red)
         button.callback = _cancel
         view.add_item(select1)
         view.add_item(button)

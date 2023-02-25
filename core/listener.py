@@ -26,5 +26,8 @@ class EventListener(ABC):
         else:
             return None
 
+    async def shutdown(self):
+        pass
+
 
 TEventListener = TypeVar("TEventListener", bound=EventListener)

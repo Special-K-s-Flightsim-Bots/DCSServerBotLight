@@ -105,6 +105,17 @@ Or if you want to change the size:
     }
 ]
 ```
+You can add a header, too:
+```json
+"elements": [
+    {
+      "type": "Ruler",
+      "params": {
+        "header": "Active Servers"
+      }
+    }
+]
+```
 
 ### Image
 An image used as a thumbnail.
@@ -151,6 +162,23 @@ Multiple fields displayed as a table with a single header line and a maximum of 
             "skill": "expert"
           }
         ]
+      }
+    }
+]
+```
+A table can be built up from a passed object that needs to be a list of dict. The values section then contains
+the key of the fields you want to use from these dictionaries and the name you want to display:
+```json
+"elements": [
+    {
+      "type": "Table",
+      "params": {
+        "obj": "servers",
+        "values": {
+          "display_name": "Server Name",
+          "status": "Status",
+          "num_players": "Active Players"
+        }
       }
     }
 ]

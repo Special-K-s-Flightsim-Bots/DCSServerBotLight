@@ -1,4 +1,4 @@
-# Welcome to DCSServerBot (Light)!
+# Welcome to DCSServerBotLight!
 This is a simpler solution of the full-fledged [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot),
 that supports server and mission administration, display of mission details and players and some other nice features
 that you see below.</br>
@@ -13,17 +13,17 @@ First let's see, what it can do for you (installation instructions below)!
 
 ---
 ## Plugins
-DCSServerBot(Light) has a modular architecture with plugins that support specific Discord commands or allow events from 
+DCSServerBotLight has a modular architecture with plugins that support specific Discord commands or allow events from 
 connected DCS servers to be processed. It comes with a set of plugins already, but you can add your own, if you wish.
 
 ### General Administrative Commands
 These commands can be used to administrate the bot itself.
 
-| Command     | Parameter | Channel       | Role    | Description                                                                                                                                                                                                               |
-|-------------|-----------|---------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| .reload     | [Plugin]  | all           | Admin   | Reloads one or all plugin(s) and their configurations from disk.                                                                                                                                                          |
-| .upgrade    |           | all           | Admin   | Upgrades the bot to the latest available version (git needed, see below).                                                                                                                                                 |
-| .rename     | newname   | admin-channel | Admin   | Renames a DCS server. DCSServerBot auto-detects server renaming, too.                                                                                                                                                     |
+| Command     | Parameter | Channel       | Role    | Description                                                                |
+|-------------|-----------|---------------|---------|----------------------------------------------------------------------------|
+| .reload     | [Plugin]  | all           | Admin   | Reloads one or all plugin(s) and their configurations from disk.           |
+| .upgrade    |           | all           | Admin   | Upgrades the bot to the latest available version (git needed, see below).  |
+| .rename     | newname   | admin-channel | Admin   | Renames a DCS server. DCSServerBotLight auto-detects server renaming, too. |
 
 ### List of supported Plugins
 | Plugin      | Scope                                                                 | Optional | Dependent on | Documentation                              |
@@ -42,7 +42,7 @@ There is a sample in the plugins/samples subdirectory, that will guide you throu
 
 ## Extensions
 Many DCS admins use extensions or add-ons like DCS-SRS, Tacview, Lotatc, etc.</br>
-DCSServerBot supports some of them already and can add a bit of quality of life. 
+DCSServerBotLight supports some of them already and can add a bit of quality of life. 
 Check out [Extensions](./extensions/README.md) for more info on how to use them.
 
 ---
@@ -154,18 +154,22 @@ If your directory is named DCS instead (stable version), just add these fields t
 | DCS_HOST                   | The internal (!) IP of the machine, DCS is running onto. If the DCS server is running on the same machine as the bot (default), this should be 127.0.0.1.                                  |
 | DCS_PORT                   | Must be a unique value > 1024 of an unused port in your system. This is **NOT** the DCS tcp/udp port (10308), that is used by DCS but a unique different one. Keep the default, if unsure. |
 | DCS_HOME                   | The main configuration directory of your DCS server installation (for Hook installation). Keep it empty, if you like to place the Hook by yourself.                                        |
-| MISSIONS_DIR               | (Optional) If you want to use a central missions directory for multiple servers, you can set it in here.                                                                                   |
-| PING_ADMIN_ON_CRASH        | Define if the role DCS Admin should be pinged when a server crash is being detected (default = true).                                                                                      |
 | CHAT_CHANNEL               | The ID of the in-game chat channel to be used for the specific DCS server. Must be unique for every DCS server instance configured. If "-1", no chat messages will be generated.           |
 | STATUS_CHANNEL             | The ID of the status-display channel to be used for the specific DCS server. Must be unique for every DCS server instance configured.                                                      |
 | ADMIN_CHANNEL              | The ID of the admin-commands channel to be used for the specific DCS server. Must be unique for every DCS server instance configured.                                                      |
+| AFK_TIME                   | Number of seconds a player is considered AFK when being on spectators for longer than AFK_TIME seconds. Default is -1 (disabled).                                                          |
+| CHAT_LOG                   | true (default), log all chat messages from players in Saved Games\<installation>\Logs\chat.log                                                                                             |
+| CHAT_LOGROTATE_COUNT       | Number of chatlogs to keep (default = 10).                                                                                                                                                 |
+| CHAT_LOGROTATE_SIZE        | Max size of a chat.log until it gets rotated (default 1 MB).                                                                                                                               |
+| MISSIONS_DIR               | (Optional) If you want to use a central missions directory for multiple servers, you can set it in here.                                                                                   |
+| PING_ADMIN_ON_CRASH        | Define if the role DCS Admin should be pinged when a server crash is being detected (default = true).                                                                                      |
 
 ### DCS/Hook Configuration
 The DCS World integration is done via Hooks. They are being installed automatically into your configured DCS servers by the bot.
 
 ### Desanitization
-DCSServerBot desanitizes your MissionScripting environment. That means, it changes entries in {DCS_INSTALLATION}\Scripts\MissionScripting.lua.
-If you use any other method of desanitization, DCSServerBot checks, if additional desanitizations are needed and conducts them.
+DCSServerBotLight desanitizes your MissionScripting environment. That means, it changes entries in {DCS_INSTALLATION}\Scripts\MissionScripting.lua.
+If you use any other method of desanitization, DCSServerBotLight checks, if additional desanitizations are needed and conducts them.
 **To be able to do so, you must change the permissions on the DCS-installation directory. Give the User group write permissions for instance.**
 Your MissionScripting.lua will look like this afterwards:
 ```lua
@@ -212,7 +216,7 @@ If you want to run the bot from autostart, create a small batch script, that wil
 directory and run the bot from there like so:
 ```cmd
 @echo off
-cd "<whereveryouinstalledthebot>\DCSServerBot"
+cd "<whereveryouinstalledthebot>\DCSServerBotLight"
 :loop
 python run.py
 goto loop
@@ -222,27 +226,27 @@ library versions) you can use the ```run-venv.cmd``` batch file to launch the bo
 
 ---
 ## How to do the more complex stuff?
-DCSServerBot can be used to run a whole worldwide distributed set of DCS servers and therefore supports the largest 
+DCSServerBotLight can be used to run a whole worldwide distributed set of DCS servers and therefore supports the largest 
 communities. The installation and maintenance of such a use-case is just a bit more complex than a single server 
 installation.
 
 ### Setup Multiple DCS-Servers on a Single Host
-DCSServerBot is able to contact DCS-servers at the same machine or over the local network.
+DCSServerBotLight is able to contact DCS-servers at the same machine or over the local network.
 
-To run multiple DCS-servers under control of DCSServerBot(Light) you just have to make sure that you configure different 
+To run multiple DCS-servers under control of DCSServerBotLight you just have to make sure that you configure different 
 communication ports. This can be done with the parameter DCS_PORT in DCSServerBotConfig.lua. The default is 6666, you 
 can just increase that for every server (6667, 6668, ...). Don't forget to configure different Discord channels 
 (CHAT_CHANNEL, STATUS_CHANNEL and ADMIN_CHANNEL) for every server, too. To add subsequent servers, just follow the steps 
 above, and you're good, unless they are on a different Windows server (see below).
 
-DCSServerBot(Light) will autodetect all configured DCS servers on the first startup and generate a sample ini file for 
+DCSServerBotLight will autodetect all configured DCS servers on the first startup and generate a sample ini file for 
 you already.
 
 ### Setup Multiple DCS-Servers at the Same Location
-To communicate with DCSServerBot(Light) over the network, you need to change two configurations.
-By default, DCSServerBot is configured to be bound to the loopback interface (127.0.0.1) not allowing any external 
+To communicate with DCSServerBotLight over the network, you need to change two configurations.
+By default, DCSServerBotLight is configured to be bound to the loopback interface (127.0.0.1) not allowing any external 
 connection to the system. This can be changed in dcsserverbot.ini by using the LAN IP address of the Windows server 
-running DCSServerBot(Light) instead (NOT your external IP address!).<br/>
+running DCSServerBotLight instead (NOT your external IP address!).<br/>
 
 **Attention:** The scheduler, .startup and .shutdown commands will only work, if the DCS-servers are on the same machine 
 as the bot. So you need to install a bot instance on every server that you use in your network. 

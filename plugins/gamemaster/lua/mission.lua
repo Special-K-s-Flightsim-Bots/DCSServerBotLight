@@ -2,7 +2,7 @@ local base		= _G
 dcsbot 			= base.dcsbot
 
 function dcsbot.getFlag(flag, channel)
-    log.write('DCSServerBot', log.DEBUG, 'GameMaster: getFlag()')
+    env.info('DCSServerBotLight - Getting flag ' .. flag)
     msg = {}
     msg.command = 'getFlag'
     msg.value = trigger.misc.getUserFlag(flag)
@@ -10,7 +10,7 @@ function dcsbot.getFlag(flag, channel)
 end
 
 function dcsbot.getVariable(name, channel)
-    log.write('DCSServerBot', log.DEBUG, 'GameMaster: getVariable()')
+    env.info('DCSServerBotLight - Getting variable ' .. name)
     msg = {}
     msg.command = 'getVariable'
     msg.value = _G[name]
@@ -18,6 +18,8 @@ function dcsbot.getVariable(name, channel)
 end
 
 function dcsbot.setVariable(name, value)
-    log.write('DCSServerBot', log.DEBUG, 'GameMaster: setVariable()')
+    env.info('DCSServerBotLight - Setting variable ' .. name .. ' to value ' .. value)
     _G[name] = value
 end
+
+env.info("DCSServerBotLight - GameMaster: mission.lua loaded.")
