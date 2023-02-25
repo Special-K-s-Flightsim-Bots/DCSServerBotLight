@@ -1,3 +1,4 @@
+import asyncio
 from core import DCSServerBot, Plugin, utils, Status, Server, Player
 from discord.ext import commands
 from .listener import GameMasterEventListener
@@ -83,7 +84,12 @@ class GameMaster(Plugin):
                 })
                 await ctx.send(f"Variable {name} set to {value}.")
             else:
-                data = await server.sendtoDCSSync({"command": "getVariable", "name": name})
+                try:
+                    data = await server.sendtoDCSSync({"command": "getVariable", "name": name})
+                except asyncio.TimeoutError:
+                    await ctx.send('Timeout while retrieving variable. Most likely a lua error occurred. '
+                                   'Check your dcs.log.')
+                    return
                 if 'value' in data:
                     await ctx.send(f"Variable {name} has value {data['value']}.")
                 else:

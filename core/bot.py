@@ -41,6 +41,7 @@ class DCSServerBot(commands.Bot):
         self.executor = ThreadPoolExecutor(thread_name_prefix='BotExecutor')
 
     async def close(self):
+        await self.audit(message="DCSServerBotLight stopped.")
         await super().close()
         self.log.debug('Shutting down...')
         if self.udp_server:
@@ -84,6 +85,7 @@ class DCSServerBot(commands.Bot):
         if num == 0:
             self.log.info('- No running servers found.')
         self.log.info('DCSServerBotLight started, accepting commands.')
+        await self.audit(message="DCSServerBotLight started.")
 
     async def load_plugin(self, plugin: str) -> bool:
         try:

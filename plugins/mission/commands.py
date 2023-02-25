@@ -1,4 +1,3 @@
-# noinspection PyPackageRequirements
 import aiohttp
 import asyncio
 import discord
@@ -222,7 +221,7 @@ class Mission(Plugin):
             await interaction.response.defer()
             self.stop()
 
-        @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary, emoji='❌')
+        @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
         async def cancel(self, interaction: Interaction, button: Button):
             await interaction.response.defer()
             self.stop()
@@ -250,9 +249,8 @@ class Mission(Plugin):
         else:
             server.on_empty = dict()
 
-        question = f"Do you really want to change the mission?"
         if server.is_populated():
-            result = await utils.populated_question(ctx, question)
+            result = await utils.populated_question(ctx, f"Do you really want to change the mission?")
             if not result:
                 await ctx.send('Aborted.')
                 return
@@ -271,7 +269,7 @@ class Mission(Plugin):
         embed.add_field(name="# Players", value=str(len(server.get_active_players())))
         embed.add_field(name='▬' * 27, value='_ _', inline=False)
         view = self.LoadView(ctx, placeholder="Select a mission to load",
-                             options=[SelectOption(label=os.path.basename(x)[:-4]) for x in missions[:25]])
+                             options=[SelectOption(label=os.path.basename(x)[:-4]) for x in list(set(missions))[:25]])
         msg = await ctx.send(embed=embed, view=view)
         try:
             if await view.wait():
@@ -322,7 +320,7 @@ class Mission(Plugin):
                 installed = [mission[(mission.rfind('\\') + 1):] for mission in data['missionList']]
                 data = await server.sendtoDCSSync({"command": "listMizFiles"})
                 available = data['missions']
-                files: list = list(set(available) - set(installed))
+                files: list = sorted(list(set(available) - set(installed)))
                 if len(files) == 0:
                     await ctx.send('No (new) mission found to add.')
                     return
@@ -338,17 +336,17 @@ class Mission(Plugin):
                     return
                 server.addMission(file)
                 name = file[:-4]
-                await ctx.send(f'Mission "{name}" added.')
+                await ctx.send('Mission "{}" added.'.format(utils.escape_string(name)))
                 if await utils.yn_question(ctx, 'Do you want to load this mission?'):
                     data = await server.sendtoDCSSync({"command": "listMissions"})
                     missions = data['missionList']
                     for idx, mission in enumerate(missions):
                         if os.path.basename(mission) == file:
-                            tmp = await ctx.send(f'Loading mission {name} ...')
+                            tmp = await ctx.send('Loading mission {} ...'.format(utils.escape_string(name)))
                             await server.loadMission(idx + 1)
                             await self.bot.audit("loaded mission", server=server, user=ctx.message.author)
                             await tmp.delete()
-                            await ctx.send(f'Mission {name} loaded.')
+                            await ctx.send('Mission {} loaded.'.format(utils.escape_string(name)))
                             break
             else:
                 await ctx.send(f'There is no file in the Missions directory of server {server.display_name}.')
@@ -374,21 +372,21 @@ class Mission(Plugin):
         else:
             original = missions = server.settings['missionList']
 
-            name = await utils.selection(ctx,
-                                         placeholder="Select the mission to delete",
-                                         options=[SelectOption(label=x[(x.rfind('\\') + 1):-4]) for x in missions[:25]])
-            if not name:
-                return
+        name = await utils.selection(ctx,
+                                     placeholder="Select the mission to delete",
+                                     options=[SelectOption(label=x[(x.rfind('\\') + 1):-4]) for x in missions[:25]])
+        if not name:
+            return
 
-            for mission in missions:
-                if name in mission:
-                    if await utils.yn_question(ctx, f'Delete mission "{name}" from the mission list?'):
-                        server.deleteMission(original.index(mission) + 1)
-                        await ctx.send(f'Mission "{name}" removed from list.')
-                        if await utils.yn_question(ctx, f'Delete mission "{name}" also from disk?'):
-                            os.remove(mission)
-                            await ctx.send(f'Mission "{name}" deleted.')
-                    break
+        for mission in missions:
+            if name in mission:
+                if await utils.yn_question(ctx, f'Delete mission "{name}" from the mission list?'):
+                    server.deleteMission(original.index(mission) + 1)
+                    await ctx.send(f'Mission "{name}" removed from list.')
+                    if await utils.yn_question(ctx, f'Delete mission "{name}" also from disk?'):
+                        os.remove(mission)
+                        await ctx.send(f'Mission "{name}" deleted.')
+                break
 
     @commands.command(description='Pauses the current running mission')
     @utils.has_role('DCS Admin')
