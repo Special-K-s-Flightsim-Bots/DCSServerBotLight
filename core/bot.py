@@ -34,7 +34,7 @@ class DCSServerBot(commands.Bot):
         plugins: str = self.config['BOT']['PLUGINS']
         if 'OPT_PLUGINS' in self.config['BOT']:
             plugins += ', ' + self.config['BOT']['OPT_PLUGINS']
-        self.plugins: list[str] = [p.strip() for p in plugins.split(',')]
+        self.plugins: [str] = [p.strip() for p in set(plugins.split(','))]
         self.audit_channel = None
         self.synced: bool = False
         self.tree.on_error = self.on_app_command_error
@@ -336,6 +336,7 @@ class DCSServerBot(commands.Bot):
             if server.process:
                 break
         server.dcs_version = data['dcs_version']
+        server.status = Status.STOPPED
         # update the database and check for server name changes
         with DBConnection() as cursor:
             cursor.execute('SELECT server_name FROM servers WHERE agent_host=? AND host=? AND port=?',
