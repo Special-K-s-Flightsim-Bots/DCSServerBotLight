@@ -25,8 +25,10 @@ class Plugin(commands.Cog):
         self.loop = bot.loop
         self.locals = self.read_locals()
         self._config = dict[str, dict]()
-        self.install()
         self.eventlistener: Type[TEventListener] = eventlistener(self) if eventlistener else None
+
+    async def cog_load(self) -> None:
+        await self.install()
         if self.eventlistener:
             self.bot.register_eventListener(self.eventlistener)
         self.log.debug(f'- Plugin {type(self).__name__} v{self.plugin_version} initialized.')
@@ -37,9 +39,9 @@ class Plugin(commands.Cog):
             self.bot.unregister_eventListener(self.eventlistener)
         # delete a possible configuration
         self._config.clear()
-        self.log.debug(f'- Plugin {type(self).__name__} unloaded.')
+        self.log.info(f'  => {self.plugin_name} unloaded.')
 
-    def install(self):
+    async def install(self):
         self.init_db()
         for server in self.bot.servers.values():
             source_path = f'./plugins/{self.plugin_name}/lua'
