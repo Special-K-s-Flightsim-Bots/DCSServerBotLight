@@ -47,7 +47,7 @@ class Servers:
         for server_name, server in self.bot.servers.items():
             name = re.sub(self.bot.config['FILTER']['SERVER_FILTER'], '', server.name).strip()
             mission_name = re.sub(self.bot.config['FILTER']['MISSION_FILTER'], '', server.current_mission.name).strip() if server.current_mission else "n/a"
-            num_players = f"{len(server.get_active_players()) or 1}/{server.settings['maxPlayers']}"
+            num_players = f"{len(server.get_active_players()) + 1}/{server.settings['maxPlayers']}"
             table.add_row(str.capitalize(server.status.name), name, mission_name, num_players)
         return Panel(table, title="Servers", padding=1)
 
