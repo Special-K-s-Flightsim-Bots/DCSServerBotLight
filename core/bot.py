@@ -35,6 +35,8 @@ class DCSServerBot(commands.Bot):
         if 'OPT_PLUGINS' in self.config['BOT']:
             plugins += ', ' + self.config['BOT']['OPT_PLUGINS']
         self.plugins: [str] = [p.strip() for p in list(dict.fromkeys(plugins.split(',')))]
+        if not self.config.getboolean('BOT', 'USE_DASHBOARD'):
+            self.plugins.remove('dashboard')
         self.audit_channel = None
         self.synced: bool = False
         self.tree.on_error = self.on_app_command_error

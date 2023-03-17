@@ -1,19 +1,28 @@
 # Configuration Samples
 In this folder, you'll find some configuration-file samples for the bot and the different available plugins.
 
-## dcsserverbot.ini.sample
+## dcsserverbot.ini
 This sample can be used as a starting point, when you create your own dcsserverbot.ini file.<br/>
 It is a basic configuration for a dedicated server setup with two dedicated servers being configured to be used with
 the bot. The first instance is the default instance, the 2nd instance is named "instance2". This is what you provide
 with -w to the dcs.exe process or how your Saved Games folder is named. 
 
-## motd.json.sample
+## admin.json
+Default file to support the .download command. Here you can configure which files / patterns you want to support for
+DCS Admin users to download from your server. You see a lot of examples in there already. If you don't want people to
+download specific items, just remove the respective line from your admin.json.
+
+## commands.json
+This shows two examples of custom commands you can create with the commands plugin. One command starts a DCS server
+and the 2nd command runs a `dir` command on your server and returns the output. 
+
+## motd.json
 This sample contains a default section, that is being used for every server, if nothing else is provided and a specific
 section for server "DCS.openbeta_server", that is overwriting the default.
 
-## scheduler.json.sample
+## scheduler.json
 The scheduler is a very powerful and thus complex plugin. I tried to pack in as much information that was possible into
-the sample, but you might want to look into the [README](../plugins/scheduler/README.md) as well.
+the sample, but you might want to look into the [README](../../plugins/scheduler/README.md) as well.
 
 ### Default-Section
 Contains the "warn schedule", meaning at which amount of seconds before a restart / shutdown happens, the users should 

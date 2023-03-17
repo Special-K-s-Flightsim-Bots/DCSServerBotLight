@@ -3,6 +3,7 @@ import logging
 import logging.handlers
 import math
 import platform
+import re
 from core import DCSServerBot, Plugin
 from datetime import datetime
 from discord.ext import tasks
@@ -40,13 +41,14 @@ class Servers:
     def __rich__(self) -> Panel:
         table = Table(expand=True, show_edge=False)
         table.add_column("Status", justify="center")
-        table.add_column("Server Name", justify="left")
-        table.add_column("Mission Name", justify="left")
+        table.add_column("Server Name", justify="left", no_wrap=True)
+        table.add_column("Mission Name", justify="left", no_wrap=True)
         table.add_column("# Players", justify="center")
         for server_name, server in self.bot.servers.items():
-            mission_name = server.current_mission.name if server.current_mission else "n/a"
+            name = re.sub(self.bot.config['FILTER']['SERVER_FILTER'], '', server.name).strip()
+            mission_name = re.sub(self.bot.config['FILTER']['MISSION_FILTER'], '', server.current_mission.name).strip() if server.current_mission else "n/a"
             num_players = f"{len(server.get_active_players()) or 1}/{server.settings['maxPlayers']}"
-            table.add_row(str.capitalize(server.status.name), server_name, mission_name, num_players)
+            table.add_row(str.capitalize(server.status.name), name, mission_name, num_players)
         return Panel(table, title="Servers", padding=1)
 
 
@@ -111,7 +113,7 @@ class Dashboard(Plugin):
             Layout(name="log", ratio=2, minimum_size=5),
         )
         self.layout['main'].split_row(Layout(name="servers", minimum_size=len(self.bot.servers) + 4, ratio=3),
-                                      Layout(name="bot", ratio=1))
+                                      Layout(name="bot"))
         formatter = logging.Formatter(fmt=u'%(asctime)s.%(msecs)03d %(levelname)s\t%(message)s',
                                       datefmt='%Y-%m-%d %H:%M:%S')
         self.queue = Queue()
@@ -138,18 +140,16 @@ class Dashboard(Plugin):
         log = Log(self.queue)
         bot = Bot(self.bot)
 
-        def update_header():
+        def do_update():
             self.layout['header'].update(header)
-
-        def update_main():
             self.layout['servers'].update(servers)
             self.layout['bot'].update(bot)
             self.layout['log'].update(log)
 
-        with Live(update_header(), refresh_per_second=1, screen=True) as live:
+        do_update()
+        with Live(self.layout, refresh_per_second=1, screen=True):
             while not self.update.is_being_cancelled():
-                update_main()
-                live.update(self.layout)
+                do_update()
                 await asyncio.sleep(1)
 
 
