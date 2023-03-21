@@ -64,7 +64,7 @@ class Mission(Plugin):
                 await ctx.send(f'There is no mission running on server {server.display_name}')
                 return
         else:
-            self.eventlistener._display_mission_embed(server)
+            await self.eventlistener._display_mission_embed(server)
 
     @staticmethod
     def format_briefing_list(data: list[Server], marker, marker_emoji):
@@ -146,7 +146,7 @@ class Mission(Plugin):
                            delete_after=timeout if timeout > 0 else None)
             return
         report = Report(self.bot, self.plugin_name, 'players.json')
-        env = await report.render(server=server)
+        env = await report.render(server=server, sides=utils.get_sides(ctx.message, server))
         await ctx.send(embed=env.embed, delete_after=timeout if timeout > 0 else None)
 
     @commands.command(description='Restarts the current active mission', usage='[delay] [message]')
@@ -503,7 +503,7 @@ class Mission(Plugin):
                 # remove any hung flag, if the server has responded
                 if server.name in self.hung:
                     del self.hung[server.name]
-                self.eventlistener._display_mission_embed(server)
+                await self.eventlistener._display_mission_embed(server)
             except asyncio.TimeoutError:
                 # check if the server process is still existent
                 max_hung_minutes = int(self.bot.config['DCS']['MAX_HUNG_MINUTES'])
@@ -545,7 +545,7 @@ class Mission(Plugin):
         for server_name, server in self.bot.servers.items():
             if server.status == Status.UNREGISTERED:
                 continue
-            channel = server.get_channel(Channel.STATUS)
+            channel = await self.bot.fetch_channel(int(self.bot.config[server.installation][Channel.STATUS.value]))
             # name changes of the status channel will only happen with the correct permission
             if channel.permissions_for(self.bot.member).manage_channels:
                 name = channel.name

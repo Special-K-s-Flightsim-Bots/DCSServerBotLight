@@ -128,7 +128,7 @@ class CloudHandlerMaster(CloudHandlerAgent):
 async def setup(bot: DCSServerBot):
     if not os.path.exists('config/cloud.json'):
         bot.log.info('No cloud.json found, copying the sample.')
-        shutil.copyfile('config/cloud.json.sample', 'config/cloud.json')
+        shutil.copyfile('config/samples/cloud.json', 'config/cloud.json')
     if bot.config.getboolean('BOT', 'MASTER') is True:
         await bot.add_cog(CloudHandlerMaster(bot, CloudListener))
     else:

@@ -1,4 +1,5 @@
 import asyncio
+import concurrent
 import discord
 import json
 import platform
@@ -40,18 +41,21 @@ class DCSServerBot(commands.Bot):
         self.audit_channel = None
         self.synced: bool = False
         self.tree.on_error = self.on_app_command_error
-        self.executor = ThreadPoolExecutor(thread_name_prefix='BotExecutor')
+        self.executor = ThreadPoolExecutor(thread_name_prefix='BotExecutor', max_workers=20)
 
     async def close(self):
         await self.audit(message="DCSServerBotLight stopped.")
-        await super().close()
-        self.log.debug('Shutting down...')
+        self.log.info('Graceful shutdown (this might take a bit) ...')
         if self.udp_server:
-            self.udp_server.shutdown()
+            self.log.debug("- Processing unprocessed messages ...")
+            await asyncio.to_thread(self.udp_server.shutdown)
+            self.log.debug("- All messages processed.")
             self.udp_server.server_close()
         self.log.debug('- Listener stopped.')
         self.executor.shutdown(wait=True)
         self.log.debug('- Executor stopped.')
+        self.log.info('- Unloading Plugins ...')
+        await super().close()
         self.log.info('Shutdown complete.')
 
     def is_master(self) -> bool:
@@ -69,7 +73,7 @@ class DCSServerBot(commands.Bot):
                     server.settings['listLoop'] = True
 
     async def register_servers(self):
-        self.log.info('- Searching for running DCS servers, this might take a bit ...')
+        self.log.info('- Searching for running DCS servers (this might take a bit) ...')
         servers = list(self.servers.values())
         timeout = (5 * len(self.servers)) if self.config.getboolean('BOT', 'SLOW_SYSTEM') else (3 * len(self.servers))
         ret = await asyncio.gather(
@@ -197,7 +201,7 @@ class DCSServerBot(commands.Bot):
                     else:
                         self.log.info(f'  => {string.capwords(plugin)} NOT loaded.')
                 if not self.synced:
-                    self.log.debug('- Registering Discord Commands ...')
+                    self.log.info('- Registering Discord Commands (this might take a bit) ...')
                     self.tree.copy_global_to(guild=self.guilds[0])
                     await self.tree.sync(guild=self.guilds[0])
                     self.synced = True
@@ -209,7 +213,7 @@ class DCSServerBot(commands.Bot):
                 self.loop.create_task(self.register_servers())
             else:
                 self.log.warning('- Discord connection re-established.')
-                # maybe our external IP got changed...
+                # maybe our external IP has changed...
                 self.external_ip = await utils.get_external_ip() if 'PUBLIC_IP' not in self.config['BOT'] else self.config['BOT']['PUBLIC_IP']
         except Exception as ex:
             self.log.exception(ex)
@@ -422,10 +426,13 @@ class DCSServerBot(commands.Bot):
                                     self.loop.call_soon_threadsafe(f.set_result, data)
                                 if command != 'registerDCSServer':
                                     continue
-                        for listener in self.eventListeners:
-                            if command in listener.commands:
-                                self.loop.call_soon_threadsafe(asyncio.create_task,
-                                                               listener.processEvent(deepcopy(data)))
+                        concurrent.futures.wait(
+                            [
+                                asyncio.run_coroutine_threadsafe(listener.processEvent(deepcopy(data)), self.loop)
+                                for listener in self.eventListeners
+                                if data['command'] in listener.commands
+                            ]
+                        )
                     except Exception as ex:
                         self.log.exception(ex)
                     finally:
@@ -433,23 +440,29 @@ class DCSServerBot(commands.Bot):
                         data = s.server.message_queue[server_name].get()
 
         class MyThreadingUDPServer(ThreadingUDPServer):
-            def __init__(self, server_address: Tuple[str, int], request_handler: Callable[..., BaseRequestHandler]):
+            def __init__(self, server_address: Tuple[str, int], request_handler: Callable[..., BaseRequestHandler],
+                         bot: DCSServerBot):
+                self.bot = bot
+                self.log = bot.log
+                self.executor = bot.executor
                 # enable reuse, in case the restart was too fast and the port was still in TIME_WAIT
                 MyThreadingUDPServer.allow_reuse_address = True
                 MyThreadingUDPServer.max_packet_size = 65504
                 self.message_queue: dict[str, Queue[str]] = {}
-                self.executor = ThreadPoolExecutor(thread_name_prefix='UDPServer')
                 super().__init__(server_address, request_handler)
 
             def shutdown(self) -> None:
                 super().shutdown()
-                for server_name, queue in self.message_queue.items():
-                    queue.join()
-                    queue.put('')
-                self.executor.shutdown(wait=True)
+                try:
+                    for server_name, queue in self.message_queue.items():
+                        if not queue.empty():
+                            queue.join()
+                        queue.put('')
+                except Exception as ex:
+                    self.log.exception(ex)
 
         host = self.config['BOT']['HOST']
         port = int(self.config['BOT']['PORT'])
-        self.udp_server = MyThreadingUDPServer((host, port), RequestHandler)
+        self.udp_server = MyThreadingUDPServer((host, port), RequestHandler, self)
         self.executor.submit(self.udp_server.serve_forever)
         self.log.debug('- Listener started on interface {} port {} accepting commands.'.format(host, port))
