@@ -2,6 +2,7 @@ import os
 import shutil
 import subprocess
 import win32api
+import win32con
 from configparser import RawConfigParser
 from core import Extension, DCSServerBot, utils, report, Server
 from typing import Optional
@@ -15,8 +16,11 @@ class SRS(Extension):
         self.process = None
 
     def load_config(self) -> Optional[dict]:
-        self.cfg.read(os.path.expandvars(self.config['config']), encoding='utf-8')
-        return {s: dict(self.cfg.items(s)) for s in self.cfg.sections()}
+        if 'config' in self.config:
+            self.cfg.read(os.path.expandvars(self.config['config']), encoding='utf-8')
+            return {s: dict(self.cfg.items(s)) for s in self.cfg.sections()}
+        else:
+            return {}
 
     async def prepare(self) -> bool:
         # Set SRS port if necessary
@@ -68,9 +72,15 @@ class SRS(Extension):
         if 'autostart' not in self.config or self.config['autostart']:
             self.log.debug(r'Launching SRS server with: "{}\SR-Server.exe" -cfg="{}"'.format(
                 os.path.expandvars(self.config['installation']), os.path.expandvars(self.config['config'])))
-            self.process = subprocess.Popen(['SR-Server.exe', '-cfg={}'.format(
-                os.path.expandvars(self.config['config']))],
-                                            executable=os.path.expandvars(self.config['installation']) + r'\SR-Server.exe')
+            if self.bot.config.getboolean(self.server.installation, 'START_MINIMIZED'):
+                info = subprocess.STARTUPINFO()
+                info.dwFlags = subprocess.STARTF_USESHOWWINDOW
+                info.wShowWindow = win32con.SW_MINIMIZE
+            else:
+                info = None
+            self.process = subprocess.Popen(
+                ['SR-Server.exe', '-cfg={}'.format(os.path.expandvars(self.config['config']))],
+                executable=os.path.expandvars(self.config['installation']) + r'\SR-Server.exe', startupinfo=info)
         return self.is_running()
 
     async def shutdown(self, data: dict):
@@ -124,7 +134,7 @@ class SRS(Extension):
             return False
         # do we have a proper config file?
         if 'config' not in self.config or not os.path.exists(os.path.expandvars(self.config['config'])):
-            self.log.debug(f"SRS config not found in {self.config['config']}")
+            self.log.debug(f"SRS config not found for server {self.server.name}")
             return False
         if self.server.installation not in self.config['config']:
             self.log.warning(f"- Please move your SRS configuration from {self.config['config']} to "

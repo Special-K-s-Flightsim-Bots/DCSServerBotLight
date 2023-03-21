@@ -40,10 +40,10 @@ class Servers:
 
     def __rich__(self) -> Panel:
         table = Table(expand=True, show_edge=False)
-        table.add_column("Status", justify="center")
+        table.add_column("Status", justify="center", min_width=8)
         table.add_column("Server Name", justify="left", no_wrap=True)
         table.add_column("Mission Name", justify="left", no_wrap=True)
-        table.add_column("# Players", justify="center")
+        table.add_column("Players", justify="center", min_width=4)
         for server_name, server in self.bot.servers.items():
             name = re.sub(self.bot.config['FILTER']['SERVER_FILTER'], '', server.name).strip()
             mission_name = re.sub(self.bot.config['FILTER']['MISSION_FILTER'], '', server.current_mission.name).strip() if server.current_mission else "n/a"
@@ -60,12 +60,14 @@ class Bot:
 
     def __rich__(self) -> Panel:
 
-        msg = f"Node:\t{platform.node()}\n"
-        msg += "Type:\t[bold red]Master[/]\n" if self.bot.master else "Type:\tAgent\n"
+        msg = f"Node:\t\t{platform.node()}\n"
+        msg += "Type:\t\t[bold red]Master[/]\n" if self.bot.master else "Type:\t\tAgent\n"
         if math.isinf(self.bot.latency):
-            msg += "Ping:\t[red]Disconnected![/]"
+            msg += "Heartbeat:\t[bold red]Disconnected![/]"
         else:
-            msg += f"Ping:\t{int(self.bot.latency * 1000)} ms"
+            msg += f"Heartbeat:\t{int(self.bot.latency * 1000)} ms"
+        if self.bot.is_ws_ratelimited():
+            msg += "\t[bold red]Rate limited![/]"
         return Panel(msg, title="Bot", padding=1)
 
 
@@ -146,11 +148,15 @@ class Dashboard(Plugin):
             self.layout['bot'].update(bot)
             self.layout['log'].update(log)
 
-        do_update()
-        with Live(self.layout, refresh_per_second=1, screen=True):
-            while not self.update.is_being_cancelled():
-                do_update()
-                await asyncio.sleep(1)
+        try:
+            do_update()
+            with Live(self.layout, refresh_per_second=1, screen=True):
+                while not self.update.is_being_cancelled():
+                    do_update()
+                    await asyncio.sleep(1)
+        except Exception as ex:
+            await self.cog_unload()
+            self.log.exception(ex)
 
 
 async def setup(bot: DCSServerBot):

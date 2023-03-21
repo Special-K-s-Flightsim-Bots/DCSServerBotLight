@@ -62,7 +62,6 @@ class Main:
         self.init_db()
         utils.desanitize(self)
         self.install_hooks()
-        self.install_fonts()
         self.bot: DCSServerBot = self.init_bot()
         self.add_commands()
 
@@ -168,7 +167,7 @@ class Main:
                 raise k
             self.log.debug('  - Hooks installed into {}.'.format(installation))
 
-    def install_fonts(self):
+    async def install_fonts(self):
         if 'CJK_FONT' in self.config['REPORTS']:
             if not os.path.exists('fonts'):
                 os.makedirs('fonts')
@@ -222,6 +221,7 @@ class Main:
                             help_command=None)
 
     async def run(self):
+        await self.install_fonts()
         self.log.info('- Starting {}-Node on {}'.format('Master' if self.config.getboolean(
             'BOT', 'MASTER') is True else 'Agent', platform.node()))
         async with self.bot:
@@ -314,11 +314,10 @@ class Main:
         @utils.has_role('Admin')
         @commands.guild_only()
         async def upgrade(ctx):
-            if await utils.yn_question(ctx, 'The bot will check and upgrade to the latest version, if available.\n'
-                                            'Are you sure?'):
+            if await utils.yn_question(ctx, f'Do you want to upgrade node {platform.node()} to the latest version?'):
                 await ctx.send('Checking for a bot upgrade ...')
                 if self.upgrade():
-                    await ctx.send('The bot has upgraded itself.')
+                    await ctx.send(f'Node {platform.node()} has upgraded itself.')
                     running = False
                     for server_name, server in self.bot.servers.items():
                         if server.status != Status.SHUTDOWN:
@@ -329,9 +328,9 @@ class Main:
                             await server.shutdown()
                     await ctx.send('The bot is now restarting itself.\nAll servers will be launched according to their '
                                    'scheduler configuration on bot start.')
-                    exit(-1)
+                    await self.bot.close()
                 else:
-                    await ctx.send('No bot upgrade found.')
+                    await ctx.send(f'No upgrade found for node {platform.node()}.')
 
         @self.bot.command(description='Terminates the bot process', aliases=['exit'])
         @utils.has_role('Admin')
@@ -339,7 +338,7 @@ class Main:
         async def terminate(ctx):
             if await utils.yn_question(ctx, f'Do you really want to terminate the bot on node {platform.node()}?'):
                 await ctx.send('Bot will terminate now (and restart automatically, if started by run.cmd).')
-                exit(-1)
+                await self.bot.close()
 
     def upgrade(self) -> bool:
         try:

@@ -117,7 +117,7 @@ class Tacview(Extension):
                 value = 'enabled'
         embed.add_field(name=name, value=value)
 
-    def schedule(self):
+    async def schedule(self):
         # check if autodelete is configured
         if 'delete_after' not in self.config:
             return
@@ -125,7 +125,7 @@ class Tacview(Extension):
         if self.lastrun > (datetime.now() - timedelta(days=1)):
             return
         now = time.time()
-        path = self.server.options['plugins']['Tacview']['tacviewExportPath'] or DEFAULT_DIR
+        path = self.server.options['plugins']['Tacview'].get('tacviewExportPath', DEFAULT_DIR)
         for f in [os.path.join(path, x) for x in os.listdir(path)]:
             if os.stat(f).st_mtime < (now - self.config['delete_after'] * 86400):
                 if os.path.isfile(f):
