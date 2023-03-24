@@ -7,6 +7,8 @@ from configparser import RawConfigParser
 from core import Extension, DCSServerBot, utils, report, Server
 from typing import Optional
 
+ports: dict[int, str] = dict()
+
 
 class SRS(Extension):
     def __init__(self, bot: DCSServerBot, server: Server, config: dict):
@@ -92,12 +94,6 @@ class SRS(Extension):
         return await super().shutdown(data)
 
     def is_running(self) -> bool:
-        if self.process:
-            if self.process.poll() is not None:
-                self.process = None
-                return False
-            else:
-                return True
         server_ip = self.locals['Server Settings']['SERVER_IP'] if 'SERVER_IP' in self.locals['Server Settings'] else '127.0.0.1'
         if server_ip == '0.0.0.0':
             server_ip = '127.0.0.1'
@@ -126,17 +122,25 @@ class SRS(Extension):
                     value += f'\n🔹 Pass: {blue}\n🔸 Pass: {red}'
             embed.add_field(name="SRS (online)" if self.is_running() else "SRS (offline)", value=value)
 
-    def verify(self) -> bool:
+    def is_installed(self) -> bool:
+        global ports
+
         # check if SRS is installed
         if 'installation' not in self.config or \
                 not os.path.exists(os.path.expandvars(self.config['installation']) + r'\SR-Server.exe'):
-            self.log.debug("SRS executable not found in {}".format(self.config['installation'] + r'\SR-Server.exe'))
+            self.log.error("  => SRS executable not found in {}".format(self.config['installation'] + r'\SR-Server.exe'))
             return False
         # do we have a proper config file?
         if 'config' not in self.config or not os.path.exists(os.path.expandvars(self.config['config'])):
-            self.log.debug(f"SRS config not found for server {self.server.name}")
+            self.log.error(f"  => SRS config not found for server {self.server.name}")
             return False
         if self.server.installation not in self.config['config']:
-            self.log.warning(f"- Please move your SRS configuration from {self.config['config']} to "
+            self.log.warning(f"  => Please move your SRS configuration from {self.config['config']} to "
                              f"Saved Games\\{self.server.installation}\\Config\\SRS.cfg")
+        port = self.config.get('port', int(self.cfg['Server Settings']['SERVER_PORT']))
+        if port in ports and ports[port] != self.server.name:
+            self.log.error(f"  => SRS port {port} already in use by server {ports[port]}!")
+            return False
+        else:
+            ports[port] = self.server.name
         return True

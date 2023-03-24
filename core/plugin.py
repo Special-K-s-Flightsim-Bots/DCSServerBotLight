@@ -1,7 +1,6 @@
 from __future__ import annotations
 import json
 import os
-import string
 import sys
 from copy import deepcopy
 from core import DBConnection
@@ -31,7 +30,7 @@ class Plugin(commands.Cog):
         await self.install()
         if self.eventlistener:
             self.bot.register_eventListener(self.eventlistener)
-        self.log.debug(f'- Plugin {type(self).__name__} v{self.plugin_version} initialized.')
+        self.log.info(f'  => {self.plugin_name.title()} loaded.')
 
     async def cog_unload(self):
         if self.eventlistener:
@@ -39,7 +38,7 @@ class Plugin(commands.Cog):
             self.bot.unregister_eventListener(self.eventlistener)
         # delete a possible configuration
         self._config.clear()
-        self.log.info(f'  => {self.plugin_name} unloaded.')
+        self.log.info(f'  => {self.plugin_name.title()} unloaded.')
 
     async def install(self):
         self.init_db()
@@ -80,7 +79,7 @@ class Plugin(commands.Cog):
                             cursor.execute(query.rstrip())
                 cursor.execute('INSERT INTO plugins (plugin, version) VALUES (?, ?) ON CONFLICT (plugin) DO NOTHING',
                                (self.plugin_name, self.plugin_version))
-                self.log.info(f'  => {string.capwords(self.plugin_name)} installed.')
+                self.log.info(f'  => {self.plugin_name.title()} installed.')
             else:
                 installed = row[0]
                 # old variant, to be migrated
@@ -96,7 +95,7 @@ class Plugin(commands.Cog):
                     ver, rev = installed.split('.')
                     installed = ver + '.' + str(int(rev) + 1)
                     self.migrate(installed)
-                    self.log.info(f'  => {string.capwords(self.plugin_name)} migrated to version {installed}.')
+                    self.log.info(f'  => {self.plugin_name.title()} migrated to version {installed}.')
                     cursor.execute('UPDATE plugins SET version = ? WHERE plugin = ?',
                                    (installed, self.plugin_name))
 
@@ -139,12 +138,12 @@ class Plugin(commands.Cog):
 
 class PluginRequiredError(Exception):
     def __init__(self, plugin: str):
-        super().__init__(f'Required plugin "{string.capwords(plugin)}" is missing!')
+        super().__init__(f'Required plugin "{plugin.title()}" is missing!')
 
 
 class PluginConflictError(Exception):
     def __init__(self, plugin1: str, plugin2: str):
-        super().__init__(f'Plugin "{string.capwords(plugin1)}" conflicts with plugin "{string.capwords(plugin2)}"!')
+        super().__init__(f'Plugin "{plugin1.title()}" conflicts with plugin "{plugin2.title()}"!')
 
 
 class PluginConfigurationError(Exception):
@@ -154,4 +153,4 @@ class PluginConfigurationError(Exception):
 
 class PluginInstallationError(Exception):
     def __init__(self, plugin: str, reason: str):
-        super().__init__(f'Plugin "{string.capwords(plugin)}" could not be installed: {reason}')
+        super().__init__(f'Plugin "{plugin.title()}" could not be installed: {reason}')
