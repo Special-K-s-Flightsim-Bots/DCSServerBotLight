@@ -194,10 +194,8 @@ class DCSServerBot(commands.Bot):
                     self.check_channels(server.installation)
                 self.log.info('- Loading Plugins ...')
                 for plugin in self.plugins:
-                    if await self.load_plugin(plugin.lower()):
-                        self.log.info(f'  => {string.capwords(plugin)} loaded.')
-                    else:
-                        self.log.info(f'  => {string.capwords(plugin)} NOT loaded.')
+                    if not await self.load_plugin(plugin.lower()):
+                        self.log.info(f'  => {plugin.title()} NOT loaded.')
                 if not self.synced:
                     self.log.info('- Registering Discord Commands (this might take a bit) ...')
                     self.tree.copy_global_to(guild=self.guilds[0])
