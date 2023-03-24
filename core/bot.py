@@ -1,13 +1,11 @@
 import asyncio
-import concurrent
 import discord
 import json
 import platform
 import socket
-import string
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
-from core import utils, Server, Status, Channel, DataObjectFactory, DBConnection, Player
+from core import utils, Server, Status, Channel, DataObjectFactory, DBConnection, Player, Autoexec
 from datetime import datetime
 from discord.ext import commands
 from queue import Queue
@@ -196,10 +194,8 @@ class DCSServerBot(commands.Bot):
                     self.check_channels(server.installation)
                 self.log.info('- Loading Plugins ...')
                 for plugin in self.plugins:
-                    if await self.load_plugin(plugin.lower()):
-                        self.log.info(f'  => {string.capwords(plugin)} loaded.')
-                    else:
-                        self.log.info(f'  => {string.capwords(plugin)} NOT loaded.')
+                    if not await self.load_plugin(plugin.lower()):
+                        self.log.info(f'  => {plugin.title()} NOT loaded.')
                 if not self.synced:
                     self.log.info('- Registering Discord Commands (this might take a bit) ...')
                     self.tree.copy_global_to(guild=self.guilds[0])
@@ -346,6 +342,37 @@ class DCSServerBot(commands.Bot):
                 break
         server.dcs_version = data['dcs_version']
         server.status = Status.STOPPED
+        # validate server ports
+        dcs_ports: dict[int, str] = dict()
+        webgui_ports: dict[int, str] = dict()
+        webrtc_ports: dict[int, str] = dict()
+        for server in self.servers.values():
+            dcs_port = server.settings.get('port', 10308)
+            if dcs_port in dcs_ports:
+                self.log.error(f'Server "{server.name}" shares its DCS port with server '
+                               f'"{dcs_ports[dcs_port]}"! Registration aborted.')
+                return False
+            else:
+                dcs_ports[dcs_port] = server.name
+            autoexec = Autoexec(bot=self, installation=server.installation)
+            webgui_port = autoexec.webgui_port or 8088
+            if webgui_port in webgui_ports:
+                self.log.error(f'Server "{server.name}" shares its webgui_port with server '
+                               f'"{webgui_ports[webgui_port]}"! Registration aborted.')
+                return False
+            else:
+                webgui_ports[webgui_port] = server.name
+            webrtc_port = autoexec.webrtc_port or 10309
+            if webrtc_port in webrtc_ports:
+                if server.settings['advanced'].get('voice_chat_server', False):
+                    self.log.error(f'Server "{server.name}" shares its webrtc_port port with server '
+                                   f'"{webrtc_ports[webrtc_port]}"! Registration aborted.')
+                else:
+                    self.log.warning(f'Server "{server.name}" shares its webrtc_port port with server '
+                                     f'"{webrtc_ports[webrtc_port]}", but voice chat is disabled.')
+            else:
+                webrtc_ports[webrtc_port] = server.name
+
         # update the database and check for server name changes
         with DBConnection() as cursor:
             cursor.execute('SELECT server_name FROM servers WHERE agent_host=? AND host=? AND port=?',
@@ -426,13 +453,10 @@ class DCSServerBot(commands.Bot):
                                     self.loop.call_soon_threadsafe(f.set_result, data)
                                 if command != 'registerDCSServer':
                                     continue
-                        concurrent.futures.wait(
-                            [
-                                asyncio.run_coroutine_threadsafe(listener.processEvent(deepcopy(data)), self.loop)
-                                for listener in self.eventListeners
-                                if data['command'] in listener.commands
-                            ]
-                        )
+                        for listener in self.eventListeners:
+                            if command in listener.commands:
+                                self.loop.call_soon_threadsafe(asyncio.create_task,
+                                                               listener.processEvent(deepcopy(data)))
                     except Exception as ex:
                         self.log.exception(ex)
                     finally:

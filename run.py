@@ -1,13 +1,12 @@
 from __future__ import annotations
-import aiohttp
 import aiofiles
+import aiohttp
 import asyncio
 import discord
 import logging
 import os
 import platform
 import shutil
-import string
 import subprocess
 import sys
 import zipfile
@@ -85,6 +84,7 @@ class Main:
         ch.setLevel(logging.INFO)
         ch.setFormatter(formatter)
         log.addHandler(ch)
+        # discord.utils.setup_logging(level=logging.DEBUG, root=False, handler=fh, formatter=formatter)
         return log
 
     def install_plugins(self):
@@ -218,14 +218,19 @@ class Main:
                             intents=discord.Intents.all(),
                             log=self.log,
                             config=self.config,
-                            help_command=None)
-
+                            help_command=None,
+                            heartbeat_timeout=120,
+                            assume_unsync_clock=True)
+                            
     async def run(self):
         await self.install_fonts()
         self.log.info('- Starting {}-Node on {}'.format('Master' if self.config.getboolean(
             'BOT', 'MASTER') is True else 'Agent', platform.node()))
         async with self.bot:
-            await self.bot.start(self.config['BOT']['TOKEN'], reconnect=True)
+            try:
+                await self.bot.start(self.config['BOT']['TOKEN'], reconnect=True)
+            except Exception as ex:
+                self.log.exception(ex)
 
     def add_commands(self):
 
@@ -240,7 +245,7 @@ class Main:
                 embed = discord.Embed(title=f'Installed Plugins ({platform.node()})', color=discord.Color.blue())
                 names = versions = ''
                 for plugin in plugins:  # type: Plugin
-                    names += string.capwords(plugin.plugin_name) + '\n'
+                    names += plugin.plugin_name.title() + '\n'
                     versions += plugin.plugin_version + '\n'
                 embed.add_field(name='Name', value=names)
                 embed.add_field(name='Version', value=versions)
@@ -252,7 +257,7 @@ class Main:
                                              embed=embed,
                                              options=[
                                                  SelectOption(
-                                                     label=string.capwords(x.plugin_name),
+                                                     label=x.plugin_name.title(),
                                                      value=x.plugin_name) for x in plugins
                                              ],
                                              max_values=len(plugins))
@@ -262,9 +267,9 @@ class Main:
             for cog in cogs:
                 try:
                     await self.bot.reload(cog)
-                    await ctx.send(f'Plugin {string.capwords(cog)} reloaded.')
+                    await ctx.send(f'Plugin {cog.title()} reloaded.')
                 except commands.ExtensionNotLoaded:
-                    await ctx.send(f'Plugin {string.capwords(cog)} not found.')
+                    await ctx.send(f'Plugin {cog.title()} not found.')
 
         @self.bot.command(description='Rename a server')
         @utils.has_role('Admin')
