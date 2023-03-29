@@ -313,6 +313,11 @@ class Server(DataObject):
         else:
             self.log.error(f"No executable found to start a DCS server in {basepath}!")
             return
+        # check if all missions are existing
+        missions = [x for x in self.settings['missionList'] if os.path.exists(x)]
+        if len(missions) != len(self.settings['missionList']):
+            self.settings['missionList'] = missions
+            self.log.warning('Removed non-existent missions from serverSettings.lua')
         self.log.debug(r'Launching DCS server with: "{}" --server --norender -w {}'.format(path, self.installation))
         if self.bot.config.getboolean(self.installation, 'START_MINIMIZED'):
             info = subprocess.STARTUPINFO()
