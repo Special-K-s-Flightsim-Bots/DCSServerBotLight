@@ -6,7 +6,7 @@ shall run, either in local time or in mission time. Tasks that can be achieved w
 * Have two servers run alternately, maybe one with password, one public
 * Change time and weather in your mission on specific times or randomly
 
-The plugin is one of if not the most complex plugins of DCSServerBot. Read this documentation thoroughly. 
+The plugin is one of if not the most complex plugins of DCSServerBotLight. Read this documentation thoroughly. 
 
 ## Configuration
 Examples:
@@ -140,7 +140,7 @@ full-fledged weather presets already and load them later or you combine them lik
 | accidental_failures  | Set that to false, if you have issues with your mission that accidental failures are enabled even if you disabled them.   |
 | hidden               | If true, this preset is not selectable in the .preset command                                                             |
 
-If you have **lots** of presets and you don't want to have them in your scheduler.json because it will get messy, you 
+If you have **lots** of presets, and you don't want to have them in your scheduler.json because it will get messy, you 
 can put them in a separate json file like so:
 ```json
 {

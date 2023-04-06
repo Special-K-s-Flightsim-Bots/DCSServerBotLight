@@ -1,4 +1,5 @@
 import asyncio
+import concurrent
 import discord
 import json
 import platform
@@ -43,7 +44,7 @@ class DCSServerBot(commands.Bot):
 
     async def close(self):
         await self.audit(message="DCSServerBotLight stopped.")
-        self.log.info('Graceful shutdown (this might take a bit) ...')
+        self.log.info('Graceful shutdown ...')
         if self.udp_server:
             self.log.debug("- Processing unprocessed messages ...")
             await asyncio.to_thread(self.udp_server.shutdown)
@@ -105,6 +106,7 @@ class DCSServerBot(commands.Bot):
             self.log.error(f'  - {ex.original if ex.original else ex}')
             self.log.exception(ex)
         except Exception as ex:
+            self.log.error(f'  - {ex}')
             self.log.exception(ex)
         return False
 
@@ -220,14 +222,11 @@ class DCSServerBot(commands.Bot):
         elif isinstance(err, commands.NoPrivateMessage):
             await ctx.send(f"{ctx.command.name} can't be used in a DM.")
         elif isinstance(err, commands.MissingRequiredArgument):
-            cmd = ctx.command.name + ' '
-            if ctx.command.usage:
-                cmd += ctx.command.usage
-            else:
-                cmd += ' '.join([f'<{name}>' if param.required else f'[{name}]' for name, param in ctx.command.params.items()])
-            await ctx.send(f"Usage: {ctx.prefix}{cmd}")
+            await ctx.send(f"Usage: {ctx.prefix}{ctx.command.name} {ctx.command.signature}")
         elif isinstance(err, commands.errors.CheckFailure):
             await ctx.send(f"You don't have the permission to use {ctx.command.name}!")
+        elif isinstance(err, commands.DisabledCommand):
+            pass
         elif isinstance(err, asyncio.TimeoutError):
             await ctx.send('A timeout occurred. Is the DCS server running?')
         else:
@@ -294,9 +293,9 @@ class DCSServerBot(commands.Bot):
     def get_channel(self, channel_id: int):
         return super().get_channel(channel_id) if channel_id != -1 else None
     
-    def get_player_by_ucid(self, ucid: str) -> Optional[Player]:
+    def get_player_by_ucid(self, ucid: str, active: Optional[bool] = True) -> Optional[Player]:
         for server in self.servers.values():
-            player = server.get_player(ucid=ucid, active=True)
+            player = server.get_player(ucid=ucid, active=active)
             if player:
                 return player
         return None
@@ -425,6 +424,14 @@ class DCSServerBot(commands.Bot):
                 if 'server_name' not in data:
                     self.log.warning('Message without server_name received: {}'.format(data))
                     return
+                self.log.debug('{}->HOST: {}'.format(data['server_name'], json.dumps(data)))
+                if 'channel' in data and data['channel'].startswith('sync-'):
+                    if data['channel'] in self.listeners:
+                        f = self.listeners[data['channel']]
+                        if not f.done():
+                            self.loop.call_soon_threadsafe(f.set_result, data)
+                        if data['command'] != 'registerDCSServer':
+                            return
                 server_name = data['server_name']
                 if server_name not in s.server.message_queue:
                     s.server.message_queue[server_name] = Queue()
@@ -433,30 +440,26 @@ class DCSServerBot(commands.Bot):
 
             def process(s, server_name: str):
                 data = s.server.message_queue[server_name].get()
+                server: Server = self.servers[server_name]
                 while len(data):
                     try:
-                        self.log.debug('{}->HOST: {}'.format(data['server_name'], json.dumps(data)))
                         command = data['command']
                         if command == 'registerDCSServer':
                             if not self.register_server(data):
-                                self.log.error(f"Error while registering server {server_name}. Exiting worker thread.")
+                                self.log.error(f"Error while registering server {server_name}.")
                                 return
-                        elif (data['server_name'] not in self.servers or
-                              self.servers[data['server_name']].status == Status.UNREGISTERED):
-                            self.log.debug(f"Command {command} for unregistered server {data['server_name']} received, "
-                                           f"ignoring.")
+                        elif server_name not in self.servers or server.status == Status.UNREGISTERED:
+                            self.log.debug(
+                                f"Command {command} for unregistered server {server_name} received, ignoring.")
                             continue
-                        if 'channel' in data and data['channel'].startswith('sync-'):
-                            if data['channel'] in self.listeners:
-                                f = self.listeners[data['channel']]
-                                if not f.done():
-                                    self.loop.call_soon_threadsafe(f.set_result, data)
-                                if command != 'registerDCSServer':
-                                    continue
-                        for listener in self.eventListeners:
-                            if command in listener.commands:
-                                self.loop.call_soon_threadsafe(asyncio.create_task,
-                                                               listener.processEvent(deepcopy(data)))
+                        concurrent.futures.wait(
+                            [
+                                asyncio.run_coroutine_threadsafe(listener.processEvent(command, server, deepcopy(data)),
+                                                                 self.loop)
+                                for listener in self.eventListeners
+                                if listener.has_event(command)
+                            ]
+                        )
                     except Exception as ex:
                         self.log.exception(ex)
                     finally:

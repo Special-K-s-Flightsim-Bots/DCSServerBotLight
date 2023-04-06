@@ -1,12 +1,11 @@
-import shlex
-import subprocess
-from core import EventListener, utils, Server, Player, Status
+import asyncio
+from core import EventListener, utils, Server, Player, Status, event
 from os import path
 
 
 class SchedulerListener(EventListener):
 
-    def _run(self, server: Server, method: str) -> None:
+    async def run(self, server: Server, method: str) -> None:
         if method.startswith('load:'):
             server.sendtoDCS({
                 "command": "do_script_file",
@@ -25,66 +24,34 @@ class SchedulerListener(EventListener):
             cmd = method[4:].strip()
             dcs_installation = path.normpath(path.expandvars(self.bot.config['DCS']['DCS_INSTALLATION']))
             dcs_home = path.normpath(path.expandvars(self.bot.config[server.installation]['DCS_HOME']))
-            cmd = utils.format_string(cmd, dcs_installation=dcs_installation, dcs_home=dcs_home,
-                                      server=server, config=self.bot.config)
+            cmd = utils.format_string(cmd, dcs_installation=dcs_installation, dcs_home=dcs_home, server=server,
+                                      config=self.bot.config)
             self.log.debug('Launching command: ' + cmd)
-            subprocess.run(shlex.split(cmd), shell=True)
+            await asyncio.create_subprocess_shell(cmd)
 
-    async def registerDCSServer(self, data: dict) -> None:
-        server: Server = self.bot.servers[data['server_name']]
+    async def process(self, server: Server, what: dict) -> None:
         config = self.plugin.get_config(server)
-        await self.plugin.init_extensions(server, config)
-        for ext in server.extensions.values():
-            if not ext.is_running():
-                await ext.startup()
-
-    async def onPlayerStart(self, data: dict) -> None:
-        if data['id'] == 1 or 'ucid' not in data:
-            return
-        server: Server = self.bot.servers[data['server_name']]
-        if server.restart_pending:
-            player: Player = server.get_player(id=data['id'])
-            player.sendChatMessage("*** Mission is about to be restarted soon! ***")
-
-    async def onGameEvent(self, data: dict) -> None:
-        async def _process(server: Server, what: dict) -> None:
-            config = self.plugin.get_config(server)
-            if 'shutdown' in what['command']:
-                await server.shutdown()
-                message = 'shut down DCS server'
+        if 'shutdown' in what['command']:
+            await server.shutdown()
+            message = 'shut down DCS server'
+            if 'user' not in what:
+                message = self.plugin_name.title() + ' ' + message
+            await self.bot.audit(message, server=server, user=what['user'] if 'user' in what else None)
+        if 'restart' in what['command']:
+            if server.status == Status.SHUTDOWN:
+                await self.plugin.launch_dcs(server, config)
+            elif server.status == Status.STOPPED:
+                if self.plugin.is_mission_change(server, config):
+                    for ext in server.extensions.values():
+                        await ext.beforeMissionLoad()
+                    if 'settings' in config['restart']:
+                        await self.plugin.change_mizfile(server, config)
+                    await server.start()
+                message = 'started DCS server'
                 if 'user' not in what:
                     message = self.plugin_name.title() + ' ' + message
-                await self.bot.audit(message, server=server, user=what['user'] if 'user' in what else None)
-            if 'restart' in what['command']:
-                if server.status == Status.SHUTDOWN:
-                    await self.plugin.launch_dcs(server, config)
-                elif server.status == Status.STOPPED:
-                    if self.plugin.is_mission_change(server, config):
-                        for ext in server.extensions.values():
-                            await ext.beforeMissionLoad()
-                        if 'settings' in config['restart']:
-                            await self.plugin.change_mizfile(server, config)
-                        await server.start()
-                    message = 'started DCS server'
-                    if 'user' not in what:
-                        message = self.plugin_name.title() + ' ' + message
-                    await self.bot.audit(message, server=server, user=what.get('user', None))
-                elif server.status in [Status.RUNNING, Status.PAUSED]:
-                    if self.plugin.is_mission_change(server, config):
-                        await server.stop()
-                        for ext in server.extensions.values():
-                            await ext.beforeMissionLoad()
-                        if 'settings' in config['restart']:
-                            await self.plugin.change_mizfile(server, config)
-                        await server.start()
-                    else:
-                        await server.current_mission.restart()
-                    message = f'restarted mission {server.current_mission.display_name}'
-                    if 'user' not in what:
-                        message = self.plugin_name.title() + ' ' + message
-                    await self.bot.audit(message, server=server, user=what.get('user', None))
-            elif what['command'] == 'rotate':
-                await server.loadNextMission()
+                await self.bot.audit(message, server=server, user=what.get('user'))
+            elif server.status in [Status.RUNNING, Status.PAUSED]:
                 if self.plugin.is_mission_change(server, config):
                     await server.stop()
                     for ext in server.extensions.values():
@@ -92,41 +59,73 @@ class SchedulerListener(EventListener):
                     if 'settings' in config['restart']:
                         await self.plugin.change_mizfile(server, config)
                     await server.start()
-                await self.bot.audit(f"{self.plugin_name.title()} rotated to mission "
-                                     f"{server.current_mission.display_name}", server=server)
-            elif what['command'] == 'load':
-                await server.loadMission(what['id'])
-                message = f'loaded mission {server.current_mission.display_name}'
+                else:
+                    await server.current_mission.restart()
+                message = f'restarted mission {server.current_mission.display_name}'
                 if 'user' not in what:
                     message = self.plugin_name.title() + ' ' + message
-                await self.bot.audit(message, server=server, user=what['user'] if 'user' in what else None)
-            elif what['command'] == 'preset':
+                await self.bot.audit(message, server=server, user=what.get('user'))
+        elif what['command'] == 'rotate':
+            await server.loadNextMission()
+            if self.plugin.is_mission_change(server, config):
                 await server.stop()
-                for preset in what['preset']:
-                    await self.plugin.change_mizfile(server, config, preset)
+                for ext in server.extensions.values():
+                    await ext.beforeMissionLoad()
+                if 'settings' in config['restart']:
+                    await self.plugin.change_mizfile(server, config)
                 await server.start()
-                await self.bot.audit(f"changed preset to {what['preset']}", server=server, user=what['user'])
-            server.restart_pending = False
+            await self.bot.audit(f"{self.plugin_name.title()} rotated to mission "
+                                 f"{server.current_mission.display_name}", server=server)
+        elif what['command'] == 'load':
+            await server.loadMission(what['id'])
+            message = f'loaded mission {server.current_mission.display_name}'
+            if 'user' not in what:
+                message = self.plugin_name.title() + ' ' + message
+            await self.bot.audit(message, server=server, user=what['user'] if 'user' in what else None)
+        elif what['command'] == 'preset':
+            await server.stop()
+            for preset in what['preset']:
+                await self.plugin.change_mizfile(server, config, preset)
+            await server.start()
+            await self.bot.audit(f"changed preset to {what['preset']}", server=server, user=what['user'])
+        server.restart_pending = False
 
-        server: Server = self.bot.servers[data['server_name']]
+    @event(name="registerDCSServer")
+    async def registerDCSServer(self, server: Server, data: dict) -> None:
+        config = self.plugin.get_config(server)
+        await self.plugin.init_extensions(server, config)
+        for ext in server.extensions.values():
+            if not ext.is_running():
+                await ext.startup()
+
+    @event(name="onPlayerStart")
+    async def onPlayerStart(self, server: Server, data: dict) -> None:
+        if data['id'] == 1 or 'ucid' not in data:
+            return
+        if server.restart_pending:
+            player: Player = server.get_player(id=data['id'])
+            player.sendChatMessage("*** Mission is about to be restarted soon! ***")
+
+    @event(name="onGameEvent")
+    async def onGameEvent(self, server: Server, data: dict) -> None:
         if data['eventName'] == 'disconnect':
             if not server.is_populated() and server.on_empty:
-                await _process(server, server.on_empty)
+                self.bot.loop.call_soon(asyncio.create_task, self.process(server, server.on_empty.copy()))
                 server.on_empty.clear()
         elif data['eventName'] == 'mission_end':
             self.bot.sendtoBot({"command": "onMissionEnd", "server_name": server.name})
             if server.on_mission_end:
-                await _process(server, server.on_mission_end)
+                self.bot.loop.call_soon(asyncio.create_task, self.process(server, server.on_mission_end.copy()))
                 server.on_mission_end.clear()
 
-    async def onSimulationStart(self, data: dict) -> None:
-        server: Server = self.bot.servers[data['server_name']]
+    @event(name="onSimulationStart")
+    async def onSimulationStart(self, server: Server, data: dict) -> None:
         config = self.plugin.get_config(server)
         if config and 'onMissionStart' in config:
-            self._run(server, config['onMissionStart'])
+            await self.run(server, config['onMissionStart'])
 
-    async def onMissionLoadEnd(self, data: dict) -> None:
-        server: Server = self.bot.servers[data['server_name']]
+    @event(name="onMissionLoadEnd")
+    async def onMissionLoadEnd(self, server: Server, data: dict) -> None:
         server.restart_pending = False
         server.on_empty.clear()
         server.on_mission_end.clear()
@@ -134,20 +133,20 @@ class SchedulerListener(EventListener):
             if ext.is_running():
                 await ext.onMissionLoadEnd(data)
 
-    async def onMissionEnd(self, data: dict) -> None:
-        server: Server = self.bot.servers[data['server_name']]
+    @event(name="onMissionEnd")
+    async def onMissionEnd(self, server: Server, data: dict) -> None:
         config = self.plugin.get_config(server)
         if config and 'onMissionEnd' in config:
-            self._run(server, config['onMissionEnd'])
+            await self.run(server, config['onMissionEnd'])
 
-    async def onSimulationStop(self, data: dict) -> None:
-        server: Server = self.bot.servers[data['server_name']]
+    @event(name="onSimulationStop")
+    async def onSimulationStop(self, server: Server, data: dict) -> None:
         for ext in server.extensions.values():
             if ext.is_running():
                 await ext.shutdown(data)
 
-    async def onShutdown(self, data: dict) -> None:
-        server: Server = self.bot.servers[data['server_name']]
+    @event(name="onShutdown")
+    async def onShutdown(self, server: Server, data: dict) -> None:
         config = self.plugin.get_config(server)
         if config and 'onShutdown' in config:
-            self._run(server, config['onShutdown'])
+            await self.run(server, config['onShutdown'])

@@ -70,9 +70,10 @@ class Agent(Plugin):
         if len(tasks):
             await asyncio.gather(*tasks)
         if ctx:
-            await ctx.send('Updating DCS World. Please wait, this might take some time ...')
+            await ctx.send(f"Updating {self.bot.config['DCS']['DCS_INSTALLATION']} ...\n"
+                           f"Please wait, this might take some time.")
         else:
-            self.log.info('Updating DCS World ...')
+            self.log.info(f"Updating {self.bot.config['DCS']['DCS_INSTALLATION']} ...")
         for plugin in self.bot.cogs.values():  # type: Plugin
             await plugin.before_dcs_update()
         # disable any popup on the remote machine
@@ -81,16 +82,18 @@ class Agent(Plugin):
         startupinfo.wShowWindow = subprocess.SW_HIDE
         subprocess.run(['dcs_updater.exe', '--quiet', 'update'], executable=os.path.expandvars(
             self.bot.config['DCS']['DCS_INSTALLATION']) + '\\bin\\dcs_updater.exe', startupinfo=startupinfo)
-        utils.desanitize(self)
+        if self.bot.config.getboolean('BOT', 'DESANITIZE'):
+            utils.desanitize(self)
         # run after_dcs_update() in all plugins
         for plugin in self.bot.cogs.values():  # type: Plugin
             await plugin.after_dcs_update()
         message = None
         if ctx:
-            await ctx.send('DCS World updated to the latest version.')
+            await ctx.send(f"{self.bot.config['DCS']['DCS_INSTALLATION']} updated to the latest version.")
             message = await ctx.send('Starting up DCS servers again ...')
         else:
-            self.log.info('DCS World updated to the latest version.\nStarting up DCS servers again ...')
+            self.log.info(f"{self.bot.config['DCS']['DCS_INSTALLATION']} updated to the latest version. "
+                          f"Starting up DCS servers again ...")
         for server in self.bot.servers.values():
             if server not in servers:
                 # let the scheduler do its job
@@ -241,7 +244,7 @@ class Agent(Plugin):
         class KickView(View):
             @discord.ui.select(placeholder="Select a player to be kicked",
                                options=[SelectOption(label=x.name,
-                                                     value=str(players.index(x))) for x in players])
+                                                     value=str(idx)) for idx, x in enumerate(players) if idx < 25])
             async def callback(self, interaction: Interaction, select: Select):
                 modal = KickModal(players[int(select.values[0])])
                 await interaction.response.send_modal(modal)

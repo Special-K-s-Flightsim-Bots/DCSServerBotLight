@@ -1,10 +1,11 @@
 import aiohttp
-from core import EventListener, Server
+from core import EventListener, Server, event
 
 
 class CloudListener(EventListener):
 
-    async def registerDCSServer(self, data):
+    @event(name="registerDCSServer")
+    async def registerDCSServer(self, server: Server, data: dict) -> None:
         # if the server is running, the bans will be sent by the plugin
         if 'sync-' not in data['channel']:
             server: Server = self.bot.servers[data['server_name']]

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from core import EventListener
+from core import EventListener, chat_command, event
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -7,24 +7,29 @@ if TYPE_CHECKING:
 
 
 class HelpListener(EventListener):
-    async def onChatCommand(self, data: dict) -> None:
-        server: Server = self.bot.servers[data['server_name']]
-        prefix = self.bot.config['BOT']['CHAT_COMMAND_PREFIX']
-        if data['subcommand'] == 'help':
-            player = server.get_player(id=data['from_id'], active=True)
-            if not player:
-                return
-            messages = [
-                f'You can use the following commands:\n',
-                f'"{prefix}atis airport" display ATIS information',
-                f'"{prefix}911 <text>"   send an alert to admins (misuse will be punished!)'
-            ]
-            player.sendUserMessage('\n'.join(messages), 30)
 
-    async def onPlayerStart(self, data: dict) -> None:
+    @event(name="onPlayerStart")
+    async def onPlayerStart(self, server: Server, data: dict) -> None:
         if data['id'] == 1:
             return
-        server: Server = self.bot.servers[data['server_name']]
         player: Player = server.get_player(id=data['id'])
+        if player:
+            player.sendChatMessage(f"Use \"{self.bot.config['BOT']['CHAT_COMMAND_PREFIX']}help\" for commands.")
+
+    @chat_command(name="help", help="The help command")
+    async def help(self, server: Server, player: Player, params: list[str]):
         prefix = self.bot.config['BOT']['CHAT_COMMAND_PREFIX']
-        player.sendChatMessage(f'Use "{prefix}help" for commands.')
+        messages = [
+            f'You can use the following commands:\n'
+        ]
+        for listener in self.bot.eventListeners:
+            for chat_command in listener.chat_commands:
+                if chat_command.roles and not player.has_discord_roles(chat_command.roles):
+                    continue
+                cmd = f"{prefix}{chat_command.name}"
+                if chat_command.usage:
+                    cmd += f" {chat_command.usage}"
+                if chat_command.help:
+                    cmd += '\u2000' * (20 - len(cmd)) + f"- {chat_command.help}"
+                messages.append(cmd)
+        player.sendUserMessage('\n'.join(messages), 30)
