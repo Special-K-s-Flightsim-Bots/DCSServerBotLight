@@ -98,7 +98,7 @@ class CloudHandlerMaster(CloudHandlerAgent):
 
     async def cog_load(self) -> None:
         await super().cog_load()
-        if not self.config.get('register', False):
+        if not self.config.get('register', True):
             return
         try:
             with DBConnection() as cursor:
