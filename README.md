@@ -26,16 +26,17 @@ These commands can be used to administrate the bot itself.
 | .rename     | newname   | admin-channel | Admin   | Renames a DCS server. DCSServerBotLight auto-detects server renaming, too. |
 
 ### List of supported Plugins
-| Plugin      | Scope                                                                 | Optional | Dependent on | Documentation                              |
-|-------------|-----------------------------------------------------------------------|----------|--------------|--------------------------------------------|
-| Mission     | Handling of missions, compared to the WebGUI.                         | no       |              | [README](./plugins/mission/README.md)      |
-| Admin       | Admin commands to manage your DCS server.                             | yes      |              | [README](./plugins/admin/README.md)        |
-| Scheduler   | Autostart / -stop of servers or missions, change weather, etc.        | yes      | Mission      | [README](./plugins/scheduler/README.md)    |
-| GameMaster  | Interaction with the running mission (inform users, set flags, etc).  | yes      |              | [README](./plugins/gamemaster/README.md)   |
-| Cloud       | Connection to the DGSA Global Ban System.                             | yes      |              | [README](./plugins/cloud/README.md)        |
-| MOTD        | Generates a message of the day.                                       | yes      |              | [README](./plugins/motd/README.md)         |
-| FunkMan     | Support for Moose.FunkMan .                                           | yes      |              | [README](./plugins/funkman/README.md)      |
-| Commands    | Map executables or shell commands to custom discord commands.         | yes      |              | [README](./plugins/commands/README.md)     |
+| Plugin       | Scope                                                                | Optional | Dependent on | Documentation                              |
+|--------------|----------------------------------------------------------------------|----------|--------------|--------------------------------------------|
+| GameMaster   | Interaction with the running mission (inform users, set flags, etc). | yes      |              | [README](./plugins/gamemaster/README.md)   |
+| Mission      | Handling of missions, compared to the WebGUI.                        | no       |              | [README](./plugins/mission/README.md)      |
+| Scheduler    | Autostart / -stop of servers or missions, change weather, etc.       | yes      | Mission      | [README](./plugins/scheduler/README.md)    |
+| Admin        | Admin commands to manage your DCS server.                            | yes      |              | [README](./plugins/admin/README.md)        |
+| Cloud        | Connection to the DGSA Global Ban System.                            | yes      |              | [README](./plugins/cloud/README.md)        |
+| MOTD         | Generates a message of the day.                                      | yes      |              | [README](./plugins/motd/README.md)         |
+| FunkMan      | Support for Moose.FunkMan .                                          | yes      |              | [README](./plugins/funkman/README.md)      |
+| Commands     | Map executables or shell commands to custom discord commands.        | yes      |              | [README](./plugins/commands/README.md)     |
+| Backup       | Backup your servers and bot configuration to a cloud drive.          | yes      |              | [README](./plugins/backup/README.md)       |
 
 ### In case you want to write your own plugin ...
 There is a sample in the plugins/samples subdirectory, that will guide you through the steps. If you want your plugin to be added to the distribution, just contact me via the contact details below.
@@ -105,20 +106,26 @@ a) __BOT Section__
 | MASTER              | If true, start the bot in master-mode (default for one-bot-installations). If only one bot is running, then there is only a master.\nIf you have to use more than one bot installation, for multiple DCS servers that are spanned over several locations, you have to install one agent (MASTER = false) at every other location. All DCS servers of that location will then automatically register with that agent. |
 | MASTER_ONLY         | True, if this is a master-only installation, set to false otherwise.                                                                                                                                                                                                                                                                                                                                                 |
 | SLOW_SYSTEM         | If true, some timeouts are increased to allow slower systems to catch up. Default is false.                                                                                                                                                                                                                                                                                                                          |
-| PLUGINS             | List of plugins to be loaded (you usually don't want to touch this).                                                                                                                                                                                                                                                                                                                                                 |
+| PLUGINS             | List of plugins to be loaded (**this overwrites the default, you usually don't want to touch it!**).                                                                                                                                                                                                                                                                                                                 |
 | OPT_PLUGINS         | List of optional plugins to be loaded. Here you can add your plugins that you want to use and that are not loaded by default.                                                                                                                                                                                                                                                                                        |
 | AUTOUPDATE          | If true, the bot auto-updates itself with the latest release on startup.                                                                                                                                                                                                                                                                                                                                             |
 | AUTOSCAN            | Scan for missions in Saved Games\..\Missions and auto-add them to the mission list (default = false).                                                                                                                                                                                                                                                                                                                |
 | DISCORD_STATUS      | (Optional) status to be displayed below the bots avatar in Discord.                                                                                                                                                                                                                                                                                                                                                  |
 | GREETING_DM         | A greeting message, that people will receive as a DM in Discord, if they join your guild.                                                                                                                                                                                                                                                                                                                            |
-| LOGLEVEL            | The level of logging that is written into the logfile (DEBUG, INFO, WARNING, ERROR, CRITICAL).                                                                                                                                                                                                                                                                                                                       |
-| LOGROTATE_COUNT     | Number of logfiles to keep (default: 5).                                                                                                                                                                                                                                                                                                                                                                             |
-| LOGROTATE_SIZE      | Number of bytes until which a logfile is rotated (default: 10 MB).                                                                                                                                                                                                                                                                                                                                                   |
 | MESSAGE_TIMEOUT     | General timeout for popup messages (default 10 seconds).                                                                                                                                                                                                                                                                                                                                                             | 
 | MESSAGE_AUTODELETE  | Delete messages after a specific amount of seconds. This is true for all statistics embeds, LSO analysis, greenieboard, but no usual user commands.                                                                                                                                                                                                                                                                  |
+| DESANITIZE          | Whether to desanitize MissionScriping.lua or not (default = yes).                                                                                                                                                                                                                                                                                                                                                    |
 | AUDIT_CHANNEL       | (Optional) The ID of an audit channel where audit events will be logged into. For security reasons, it is recommended that no users can delete messages in this channel.                                                                                                                                                                                                                                             |
 
-b) __ROLES Section__
+b) __LOGGING Section__
+
+| Parameter           | Description                                                                                     |
+|---------------------|-------------------------------------------------------------------------------------------------|
+| LOGLEVEL            | The level of logging that is written into the logfile (DEBUG, INFO, WARNING, ERROR, CRITICAL).  |
+| LOGROTATE_COUNT     | Number of logfiles to keep (default: 5).                                                        |
+| LOGROTATE_SIZE      | Number of bytes until which a logfile is rotated (default: 10 MB).                              |
+
+c) __ROLES Section__
 
 | Parameter      | Description                                                                                                                   |
 |----------------|-------------------------------------------------------------------------------------------------------------------------------|
@@ -127,14 +134,21 @@ b) __ROLES Section__
 | DCS            | The role of users being able to see their statistics and mission information (usually the general user role in your Discord). |
 | GameMaster     | Members of this role can run commands that affect the mission behaviour or handle coalition specific details.                 |
 
-c) __FILTER Section__ (Optional)
+d) __FILTER Section__ (Optional)
 
 | Parameter      | Description                                                                                                                                                                                                                       |
 |----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | SERVER_FILTER  | Filter to shorten server names (if needed)                                                                                                                                                                                        |
 | MISSION_FILTER | Filter to shorten mission names (if needed)                                                                                                                                                                                       |
 
-d) __DCS Section__
+e) __REPORTS__ Section (Optional)
+
+| Parameter   | Description                                                                                    |
+|-------------|------------------------------------------------------------------------------------------------|
+| NUM_WORKERS | Number of threads that render a graph.                                                         |
+| CKJ_FONT    | One of TC, JP or KR to support Traditional Chinese, Japanese or Korean characters in reports.  |
+
+f) __DCS Section__
 
 | Parameter                        | Description                                                                                                                                   |
 |----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
@@ -145,7 +159,7 @@ d) __DCS Section__
 | MESSAGE_PLAYER_USERNAME          | Message that a user gets when using line-feeds or carriage-returns in their names.                                                            |
 | MESSAGE_PLAYER_DEFAULT_USERNAME  | Message that a user gets when being rejected because of a default player name (Player, Spieler, etc.).                                        |                                                                                                                                               |
 
-e) __Server Specific Sections__
+g) __Server Specific Sections__
 
 This section has to be named **exactly** like your Saved Games\<instance> directory. Usual names are DCS.OpenBeta or DCS.openbeta_server.
 If your directory is named DCS instead (stable version), just add these fields to the DCS category above.
@@ -160,7 +174,7 @@ If your directory is named DCS instead (stable version), just add these fields t
 | ADMIN_CHANNEL              | The ID of the admin-commands channel to be used for the specific DCS server. Must be unique for every DCS server instance configured.                                                      |
 | AFK_TIME                   | Number of seconds a player is considered AFK when being on spectators for longer than AFK_TIME seconds. Default is -1 (disabled).                                                          |
 | CHAT_LOG                   | true (default), log all chat messages from players in Saved Games\<installation>\Logs\chat.log                                                                                             |
-| CHAT_LOGROTATE_COUNT       | Number of chatlogs to keep (default = 10).                                                                                                                                                 |
+| CHAT_LOGROTATE_COUNT       | Number of chat-logs to keep (default = 10).                                                                                                                                                |
 | CHAT_LOGROTATE_SIZE        | Max size of a chat.log until it gets rotated (default 1 MB).                                                                                                                               |
 | MISSIONS_DIR               | (Optional) If you want to use a central missions directory for multiple servers, you can set it in here.                                                                                   |
 | PING_ADMIN_ON_CRASH        | Define if the role DCS Admin should be pinged when a server crash is being detected (default = true).                                                                                      |
@@ -210,20 +224,19 @@ This is not configurable, it's a general rule (and a good one in my eyes).
 
 ---
 ## Running of the Bot
-To start the bot, you can either use the packaged ```run.cmd``` command or ```python run.py```.
-<br/>If using _AUTOUPDATE = true_ it is recommended to start the bot via _run.cmd_, as this runs it in a loop as it will close 
-itself after an update has taken place.</br>
+To start the bot, you can either use the packaged ```run``` command or ```python run.py```.<br/>
+If using _AUTOUPDATE=true_ it is recommended to start the bot via ```run```, as this runs it in a loop as it 
+will close itself after an update has taken place.</br>
 If you want to run the bot from autostart, create a small batch script, that will change to the bots installation 
 directory and run the bot from there like so:
 ```cmd
 @echo off
 cd "<whereveryouinstalledthebot>\DCSServerBotLight"
 :loop
-python run.py
+venv\Scripts\python run.py
 goto loop
 ```
-If you want to run the bot in a **virtual environment** (because you have other Python programs with different external 
-library versions) you can use the ```run-venv.cmd``` batch file to launch the bot.
+DCSServerBotLight runs in a Python virtual environment, with its own independent set of Python libraries and packages.
 
 ---
 ## How to do the more complex stuff?

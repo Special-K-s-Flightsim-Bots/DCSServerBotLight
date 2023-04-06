@@ -1,6 +1,7 @@
 import discord
 import json
-from core import DCSServerBot, Plugin, PluginRequiredError, utils, Server, Player, TEventListener, Status
+from core import DCSServerBot, Plugin, PluginRequiredError, utils, Server, Player, TEventListener, Status, \
+    PluginInstallationError
 from discord.ext import tasks, commands
 from os import path
 from typing import Optional, TYPE_CHECKING, Type
@@ -14,6 +15,8 @@ class MessageOfTheDay(Plugin):
 
     def __init__(self, bot: DCSServerBot, eventlistener: Type[TEventListener] = None):
         super().__init__(bot, eventlistener)
+        if not self.locals:
+            raise PluginInstallationError(reason=f"No {self.plugin_name}.json file found!", plugin=self.plugin_name)
         self.last_nudge = dict[str, int]()
         self.nudge.start()
 
@@ -74,7 +77,7 @@ class MessageOfTheDay(Plugin):
         if server and server.status in [Status.RUNNING, Status.PAUSED]:
             message = None
             if 'join' in option:
-                message = self.eventlistener._on_join(config)
+                message = self.eventlistener.on_join(config)
             elif 'birth' in option:
                 if not member:
                     await ctx.send(f'Usage: {ctx.prefix}{option} @member')
@@ -83,7 +86,7 @@ class MessageOfTheDay(Plugin):
                 if not player:
                     await ctx.send("Player {} is currently not logged in.".format(utils.escape_string(member.display_name)))
                     return
-                message = await self.eventlistener._on_birth(config, server, player)
+                message = await self.eventlistener.on_birth(config, server, player)
             elif 'nudge' in option:
                 # TODO
                 pass
@@ -97,22 +100,25 @@ class MessageOfTheDay(Plugin):
         def process_message(message: str, server: Server, config: dict):
             self.send_message(message, server, config)
 
-        for server_name, server in self.bot.servers.items():
-            config = self.get_config(server)
-            if server.status != Status.RUNNING or not config or 'nudge' not in config:
-                continue
-            config = config['nudge']
-            if server.name not in self.last_nudge:
-                self.last_nudge[server.name] = server.current_mission.mission_time
-            elif server.current_mission.mission_time - self.last_nudge[server.name] > config['delay']:
-                if 'message' in config:
-                    message = utils.format_string(config['message'], server=server)
-                    process_message(message, server, config)
-                elif 'messages' in config:
-                    for cfg in config['messages']:
-                        message = utils.format_string(cfg['message'], server=server)
-                        process_message(message, server, cfg)
-                self.last_nudge[server.name] = server.current_mission.mission_time
+        try:
+            for server_name, server in self.bot.servers.items():
+                config = self.get_config(server)
+                if server.status != Status.RUNNING or not config or 'nudge' not in config:
+                    continue
+                config = config['nudge']
+                if server.name not in self.last_nudge:
+                    self.last_nudge[server.name] = server.current_mission.mission_time
+                elif server.current_mission.mission_time - self.last_nudge[server.name] > config['delay']:
+                    if 'message' in config:
+                        message = utils.format_string(config['message'], server=server)
+                        process_message(message, server, config)
+                    elif 'messages' in config:
+                        for cfg in config['messages']:
+                            message = utils.format_string(cfg['message'], server=server)
+                            process_message(message, server, cfg)
+                    self.last_nudge[server.name] = server.current_mission.mission_time
+        except Exception as ex:
+            self.log.exception(ex)
 
 
 async def setup(bot: DCSServerBot):

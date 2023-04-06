@@ -2,7 +2,7 @@ from __future__ import annotations
 import discord
 import logging
 import os
-from core import EventListener, Channel
+from core import EventListener, Channel, event
 from logging.handlers import RotatingFileHandler
 from typing import Optional, TYPE_CHECKING
 
@@ -16,8 +16,8 @@ class GameMasterEventListener(EventListener):
         super().__init__(plugin)
         self.chat_log = dict()
 
-    async def registerDCSServer(self, data: dict) -> None:
-        server: Server = self.bot.servers[data['server_name']]
+    @event(name="registerDCSServer")
+    async def registerDCSServer(self, server: Server, data: dict) -> None:
         if self.bot.config.getboolean(server.installation, 'CHAT_LOG') and server.installation not in self.chat_log:
             self.chat_log[server.installation] = logging.getLogger(name=f'chat-{server.installation}')
             self.chat_log[server.installation].setLevel(logging.INFO)
@@ -31,8 +31,8 @@ class GameMasterEventListener(EventListener):
             fh.setFormatter(formatter)
             self.chat_log[server.installation].addHandler(fh)
 
-    async def onChatMessage(self, data: dict) -> None:
-        server: Server = self.bot.servers[data['server_name']]
+    @event(name="onChatMessage")
+    async def onChatMessage(self, server: Server, data: dict) -> None:
         player: Player = server.get_player(id=data['from_id'])
         if self.bot.config.getboolean(server.installation, 'CHAT_LOG'):
             self.chat_log[server.installation].info(f"{player.ucid}\t{player.name}\t{data['to']}\t{data['message']}")

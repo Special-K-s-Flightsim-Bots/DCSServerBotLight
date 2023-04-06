@@ -3,7 +3,7 @@ import json
 import os
 import sys
 from copy import deepcopy
-from core import DBConnection
+from core import DBConnection, utils
 from discord.ext import commands
 from os import path
 from shutil import copytree
@@ -23,6 +23,8 @@ class Plugin(commands.Cog):
         self.log = bot.log
         self.loop = bot.loop
         self.locals = self.read_locals()
+        if self.plugin_name != 'commands' and 'commands' in self.locals:
+            self.change_commands(self.locals['commands'])
         self._config = dict[str, dict]()
         self.eventlistener: Type[TEventListener] = eventlistener(self) if eventlistener else None
 
@@ -40,6 +42,22 @@ class Plugin(commands.Cog):
         self._config.clear()
         self.log.info(f'  => {self.plugin_name.title()} unloaded.')
 
+    def change_commands(self, cmds: dict) -> None:
+        all_cmds = {x.name: x for x in self.get_commands()}
+        for name, params in cmds.items():
+            cmd: commands.Command = all_cmds.get(name)
+            if not cmd:
+                self.log.warning(f"{self.plugin_name}: {name} is not a command!")
+                continue
+            if 'roles' in params:
+                for idx, check in enumerate(cmd.checks.copy()):
+                    if 'has_role' in check.__qualname__:
+                        cmd.checks.pop(idx)
+                if len(params['roles']):
+                    cmd.checks.append(utils.has_roles(params['roles'].copy()).predicate)
+                del params['roles']
+            if params:
+                cmd.update(**params)
     async def install(self):
         self.init_db()
         for server in self.bot.servers.values():
@@ -136,21 +154,25 @@ class Plugin(commands.Cog):
         pass
 
 
-class PluginRequiredError(Exception):
+class PluginError(Exception):
+    pass
+
+
+class PluginRequiredError(PluginError):
     def __init__(self, plugin: str):
         super().__init__(f'Required plugin "{plugin.title()}" is missing!')
 
 
-class PluginConflictError(Exception):
+class PluginConflictError(PluginError):
     def __init__(self, plugin1: str, plugin2: str):
         super().__init__(f'Plugin "{plugin1.title()}" conflicts with plugin "{plugin2.title()}"!')
 
 
-class PluginConfigurationError(Exception):
+class PluginConfigurationError(PluginError):
     def __init__(self, plugin: str, option: str):
         super().__init__(f'Option "{option}" missing in {plugin}.json!')
 
 
-class PluginInstallationError(Exception):
+class PluginInstallationError(PluginError):
     def __init__(self, plugin: str, reason: str):
         super().__init__(f'Plugin "{plugin.title()}" could not be installed: {reason}')

@@ -59,7 +59,8 @@ class Main:
         self.db_version = None
         self.install_plugins()
         self.init_db()
-        utils.desanitize(self)
+        if self.config.getboolean('BOT', 'DESANITIZE'):
+            utils.desanitize(self)
         self.install_hooks()
         self.bot: DCSServerBot = self.init_bot()
         self.add_commands()
@@ -71,12 +72,9 @@ class Main:
         formatter = logging.Formatter(fmt=u'%(asctime)s.%(msecs)03d %(levelname)s\t%(message)s',
                                       datefmt='%Y-%m-%d %H:%M:%S')
         fh = RotatingFileHandler('dcsserverbot.log', encoding='utf-8',
-                                 maxBytes=int(self.config['BOT']['LOGROTATE_SIZE']),
-                                 backupCount=int(self.config['BOT']['LOGROTATE_COUNT']))
-        if 'LOGLEVEL' in self.config['BOT']:
-            fh.setLevel(LOGLEVEL[self.config['BOT']['LOGLEVEL']])
-        else:
-            fh.setLevel(logging.DEBUG)
+                                 maxBytes=int(self.config['LOGGING']['LOGROTATE_SIZE']),
+                                 backupCount=int(self.config['LOGGING']['LOGROTATE_COUNT']))
+        fh.setLevel(LOGLEVEL[self.config['LOGGING']['LOGLEVEL']])
         fh.setFormatter(formatter)
         fh.doRollover()
         log.addHandler(fh)

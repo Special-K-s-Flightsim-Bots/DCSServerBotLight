@@ -265,7 +265,7 @@ it'll import all Tacview files from all your servers. You can access the gui wit
 }
 ```
 Don't forget to add some kind of security before exposing services like that to the outside world, with for instance
-an nginx reverse proxy.</br>
+a nginx reverse proxy.</br>
 If you plan to build Lardoon on your own, I'd recommend the fork of [Team LimaKilo](https://github.com/team-limakilo/lardoon).
 
 ### Write your own Extension!

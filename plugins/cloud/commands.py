@@ -5,7 +5,7 @@ import os
 import platform
 import shutil
 
-from core import Plugin, DCSServerBot, utils, TEventListener, Status
+from core import Plugin, DCSServerBot, utils, TEventListener, Status, DBConnection
 from discord.ext import commands, tasks
 from typing import Type, Any
 from .listener import CloudListener
@@ -86,41 +86,81 @@ class CloudHandlerAgent(Plugin):
                                 "reason": ban["reason"]
                             })
         except aiohttp.ClientError:
-            self.log.error('- Cloud service not responding.')
+            self.log.warning('- Cloud service not responding.')
 
 
 class CloudHandlerMaster(CloudHandlerAgent):
 
     def __init__(self, bot: DCSServerBot, eventlistener: Type[TEventListener] = None):
         super().__init__(bot, eventlistener)
-        if ('dcs-ban' not in self.config or self.config['dcs-ban']) and \
-                ('discord-ban' not in self.config or self.config['discord-ban']):
+        if self.config.get('dcs-ban', False) or self.config.get('discord-ban', False):
             self.master_bans.start()
 
+    async def cog_load(self) -> None:
+        await super().cog_load()
+        if not self.config.get('register', False):
+            return
+        try:
+            with DBConnection() as cursor:
+                cursor.execute("""
+                    SELECT count(distinct agent_host) as num_bots, count(distinct server_name) as num_servers 
+                    FROM servers WHERE last_seen > datetime('now', '-30 days')
+                """)
+                row = cursor.fetchone()
+                if not row:
+                    num_bots = num_servers = 0
+                else:
+                    num_bots = row[0]
+                    num_servers = row[1]
+            _, dcs_version = utils.getInstalledVersion(self.bot.config['DCS']['DCS_INSTALLATION'])
+            bot = {
+                "guild_id": self.bot.guilds[0].id,
+                "bot_version": f"{self.bot.version}.{self.bot.sub_version}",
+                "variant": "DCSServerBotLight",
+                "dcs_version": dcs_version,
+                "python_version": '.'.join(platform.python_version_tuple()),
+                "num_bots": num_bots,
+                "num_servers": num_servers,
+                "plugins": [
+                    {
+                        "name": p.plugin_name,
+                        "version": p.plugin_version
+                    } for p in self.bot.cogs.values()
+                ]
+            }
+            self.log.debug("Registering with this data: " + str(bot))
+            await self.post('register', bot)
+            self.log.debug("Bot registered.")
+        except aiohttp.ClientError:
+            self.log.debug('Bot could not register due to service unavailability. Ignored.')
+        except Exception as error:
+            self.log.debug("Error while registering: " + str(error))
+
     async def cog_unload(self):
-        if 'discord-ban' not in self.config or self.config['discord-ban']:
+        if self.config.get('dcs-ban', False) or self.config.get('discord-ban', False):
             self.master_bans.cancel()
         await super().cog_unload()
         
     @tasks.loop(minutes=15.0)
     async def master_bans(self):
         try:
-            bans: list[dict] = await self.get('discord-bans')
-            users_to_ban = [await self.bot.fetch_user(x['discord_id']) for x in bans]
-            guild = self.bot.guilds[0]
-            guild_bans = [entry async for entry in guild.bans()]
-            banned_users = [x.user for x in guild_bans if x.reason and x.reason.startswith('DGSA:')]
-            # unban users that should not be banned anymore
-            for user in [x for x in banned_users if x not in users_to_ban]:
-                await guild.unban(user, reason='DGSA: ban revoked.')
-            # ban users that were not banned yet
-            for user in [x for x in users_to_ban if x not in banned_users]:
-                if user.id == self.bot.owner_id:
-                    continue
-                reason = next(x['reason'] for x in bans if x['discord_id'] == user.id)
-                await guild.ban(user, reason='DGSA: ' + reason)
+            if self.config.get('discord-ban', False):
+                bans: list[dict] = await self.get('discord-bans')
+                users_to_ban = [await self.bot.fetch_user(x['discord_id']) for x in bans]
+                guild = self.bot.guilds[0]
+                guild_bans = [entry async for entry in guild.bans()]
+                banned_users = [x.user for x in guild_bans if x.reason and x.reason.startswith('DGSA:')]
+                # unban users that should not be banned anymore
+                for user in [x for x in banned_users if x not in users_to_ban]:
+                    await guild.unban(user, reason='DGSA: ban revoked.')
+                # ban users that were not banned yet
+                for user in [x for x in users_to_ban if x not in banned_users]:
+                    if user.id == self.bot.owner_id:
+                        continue
+                    reason = next(x['reason'] for x in bans if x['discord_id'] == user.id)
+                    await guild.ban(user, reason='DGSA: ' + reason)
         except aiohttp.ClientError:
-            self.log.error('- Cloud service not responding.')
+            self.log.warning('- Cloud service not responding.')
         except discord.Forbidden:
             self.log.warn('- DCSServerBot does not have the permission to ban users.')
 

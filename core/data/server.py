@@ -22,10 +22,7 @@ from .const import Status, Channel
 from core import utils, DBConnection
 
 if TYPE_CHECKING:
-    from .player import Player
-    from .mission import Mission
-    from ..extension import Extension
-    from ..plugin import Plugin
+    from core import Plugin, Player, Mission, Extension
 
 
 class MissionFileSystemEventHandler(FileSystemEventHandler):
@@ -88,16 +85,17 @@ class Server(DataObject):
             for row in cursor.fetchall():
                 self.embeds[row[0]] = row[1]
         # enable autoscan for missions changes
-        if self.bot.config.getboolean('BOT', 'AUTOSCAN'):
+        if self.bot.config.getboolean(self.installation, 'AUTOSCAN'):
             self.event_handler = MissionFileSystemEventHandler(self)
             self.observer = Observer()
             self.observer.start()
-        # check for SLmod and desanitize its MissionScripting.lua
-        for version in range(5, 7):
-            filename = os.path.expandvars(self.bot.config[self.installation]['DCS_HOME'] + f'\\Scripts\\net\\Slmodv7_{version}\\SlmodMissionScripting.lua')
-            if os.path.exists(filename):
-                utils.desanitize(self, filename)
-                break
+        if self.bot.config.getboolean('BOT', 'DESANITIZE'):
+            # check for SLmod and desanitize its MissionScripting.lua
+            for version in range(5, 7):
+                filename = os.path.expandvars(self.bot.config[self.installation]['DCS_HOME'] + f'\\Scripts\\net\\Slmodv7_{version}\\SlmodMissionScripting.lua')
+                if os.path.exists(filename):
+                    utils.desanitize(self, filename)
+                    break
 
     @property
     def status(self) -> Status:
@@ -117,7 +115,7 @@ class Server(DataObject):
     @status.setter
     def status(self, status: Status):
         if status != self._status:
-            if self.bot.config.getboolean('BOT', 'AUTOSCAN'):
+            if self.bot.config.getboolean(self.installation, 'AUTOSCAN'):
                 if self._status in [Status.UNREGISTERED, Status.LOADING, Status.SHUTDOWN] \
                         and status in [Status.STOPPED, Status.PAUSED, Status.RUNNING]:
                     if not self.observer.emitters:

@@ -4,7 +4,6 @@ import discord
 import os
 import platform
 import re
-import shutil
 import win32gui
 import win32process
 from core import utils, DCSServerBot, Plugin, Report, Status, Server, Channel, Player
@@ -64,7 +63,7 @@ class Mission(Plugin):
                 await ctx.send(f'There is no mission running on server {server.display_name}')
                 return
         else:
-            self.eventlistener._display_mission_embed(server)
+            self.eventlistener.display_mission_embed(server)
 
     @staticmethod
     def format_briefing_list(data: list[Server], marker, marker_emoji):
@@ -500,7 +499,7 @@ class Mission(Plugin):
                 # remove any hung flag, if the server has responded
                 if server.name in self.hung:
                     del self.hung[server.name]
-                self.eventlistener._display_mission_embed(server)
+                self.eventlistener.display_mission_embed(server)
             except asyncio.TimeoutError:
                 # check if the server process is still existent
                 max_hung_minutes = int(self.bot.config['DCS']['MAX_HUNG_MINUTES'])
@@ -618,7 +617,7 @@ class Mission(Plugin):
                             outfile.write(await response.read())
                     else:
                         await message.channel.send(f'Error {response.status} while reading MIZ file!')
-            if not self.bot.config.getboolean('BOT', 'AUTOSCAN'):
+            if not self.bot.config.getboolean(server.installation, 'AUTOSCAN'):
                 server.addMission(filename)
             name = os.path.basename(filename)[:-4]
             await message.channel.send(f'Mission "{name}" uploaded and added.' if not exists else f"Mission {name} replaced.")

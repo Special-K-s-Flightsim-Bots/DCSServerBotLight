@@ -44,7 +44,7 @@ class DCSServerBot(commands.Bot):
 
     async def close(self):
         await self.audit(message="DCSServerBotLight stopped.")
-        self.log.info('Graceful shutdown (this might take a bit) ...')
+        self.log.info('Graceful shutdown ...')
         if self.udp_server:
             self.log.debug("- Processing unprocessed messages ...")
             await asyncio.to_thread(self.udp_server.shutdown)
@@ -106,6 +106,7 @@ class DCSServerBot(commands.Bot):
             self.log.error(f'  - {ex.original if ex.original else ex}')
             self.log.exception(ex)
         except Exception as ex:
+            self.log.error(f'  - {ex}')
             self.log.exception(ex)
         return False
 
@@ -221,14 +222,11 @@ class DCSServerBot(commands.Bot):
         elif isinstance(err, commands.NoPrivateMessage):
             await ctx.send(f"{ctx.command.name} can't be used in a DM.")
         elif isinstance(err, commands.MissingRequiredArgument):
-            cmd = ctx.command.name + ' '
-            if ctx.command.usage:
-                cmd += ctx.command.usage
-            else:
-                cmd += ' '.join([f'<{name}>' if param.required else f'[{name}]' for name, param in ctx.command.params.items()])
-            await ctx.send(f"Usage: {ctx.prefix}{cmd}")
+            await ctx.send(f"Usage: {ctx.prefix}{ctx.command.name} {ctx.command.signature}")
         elif isinstance(err, commands.errors.CheckFailure):
             await ctx.send(f"You don't have the permission to use {ctx.command.name}!")
+        elif isinstance(err, commands.DisabledCommand):
+            pass
         elif isinstance(err, asyncio.TimeoutError):
             await ctx.send('A timeout occurred. Is the DCS server running?')
         else:
@@ -295,9 +293,9 @@ class DCSServerBot(commands.Bot):
     def get_channel(self, channel_id: int):
         return super().get_channel(channel_id) if channel_id != -1 else None
     
-    def get_player_by_ucid(self, ucid: str) -> Optional[Player]:
+    def get_player_by_ucid(self, ucid: str, active: Optional[bool] = True) -> Optional[Player]:
         for server in self.servers.values():
-            player = server.get_player(ucid=ucid, active=True)
+            player = server.get_player(ucid=ucid, active=active)
             if player:
                 return player
         return None
@@ -442,6 +440,7 @@ class DCSServerBot(commands.Bot):
 
             def process(s, server_name: str):
                 data = s.server.message_queue[server_name].get()
+                server: Server = self.servers[server_name]
                 while len(data):
                     try:
                         command = data['command']
@@ -449,17 +448,16 @@ class DCSServerBot(commands.Bot):
                             if not self.register_server(data):
                                 self.log.error(f"Error while registering server {server_name}.")
                                 return
-                        elif (server_name not in self.servers or
-                              self.servers[server_name].status == Status.UNREGISTERED):
-                            self.log.debug(f"Command {command} for unregistered server {server_name} received, "
-                                           f"ignoring.")
+                        elif server_name not in self.servers or server.status == Status.UNREGISTERED:
+                            self.log.debug(
+                                f"Command {command} for unregistered server {server_name} received, ignoring.")
                             continue
                         concurrent.futures.wait(
                             [
-                                asyncio.run_coroutine_threadsafe(listener.processEvent(command, deepcopy(data)),
+                                asyncio.run_coroutine_threadsafe(listener.processEvent(command, server, deepcopy(data)),
                                                                  self.loop)
                                 for listener in self.eventListeners
-                                if command in listener.commands
+                                if listener.has_event(command)
                             ]
                         )
                     except Exception as ex:
