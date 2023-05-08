@@ -9,6 +9,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import time
 import zipfile
 from core import utils, Server, DCSServerBot, Status, DBConnection
 from contextlib import closing
@@ -71,6 +72,7 @@ class Main:
         log.setLevel(logging.DEBUG)
         formatter = logging.Formatter(fmt=u'%(asctime)s.%(msecs)03d %(levelname)s\t%(message)s',
                                       datefmt='%Y-%m-%d %H:%M:%S')
+        formatter.converter = time.gmtime
         fh = RotatingFileHandler('dcsserverbot.log', encoding='utf-8',
                                  maxBytes=int(self.config['LOGGING']['LOGROTATE_SIZE']),
                                  backupCount=int(self.config['LOGGING']['LOGROTATE_COUNT']))
