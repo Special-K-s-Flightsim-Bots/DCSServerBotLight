@@ -189,7 +189,7 @@ class Server(DataObject):
         if self.status != Status.RUNNING:
             return False
         for player in self.players.values():
-            if player.active:
+            if player.active and player.side != Side.SPECTATOR:
                 return True
         return False
 
@@ -473,7 +473,7 @@ class Server(DataObject):
 
     async def keep_alive(self):
         # we set a longer timeout in here because, we don't want to risk false restarts
-        timeout = 20 if self.bot.config.getboolean('BOT', 'SLOW_SYSTEM') else 10
+        timeout = 50 if self.bot.config.getboolean('BOT', 'SLOW_SYSTEM') else 30
         data = await self.sendtoDCSSync({"command": "getMissionUpdate"}, timeout)
         with DBConnection() as cursor:
             cursor.execute('UPDATE servers SET last_seen = CURRENT_TIMESTAMP WHERE agent_host = ? AND server_name = ?',
