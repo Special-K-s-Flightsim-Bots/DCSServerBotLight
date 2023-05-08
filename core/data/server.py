@@ -18,7 +18,7 @@ from typing import Optional, Union, TYPE_CHECKING
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileSystemEvent, FileSystemMovedEvent
 from .dataobject import DataObject, DataObjectFactory
-from .const import Status, Channel
+from .const import Status, Channel, Side
 from core import utils, DBConnection
 
 if TYPE_CHECKING:
