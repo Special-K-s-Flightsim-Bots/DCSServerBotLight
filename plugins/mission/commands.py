@@ -1,6 +1,7 @@
 import aiohttp
 import asyncio
 import discord
+import logging
 import os
 import platform
 import re
@@ -522,6 +523,10 @@ class Mission(Plugin):
                             )
                             await asyncio.to_thread(create_dump, server.process.pid, filename,
                                                     MINIDUMP_TYPE.MiniDumpNormal, True)
+                            # remove the logger that was created by minidump
+                            root = logging.getLogger()
+                            if root.handlers:
+                                root.removeHandler(root.handlers[0])
                             server.process.kill()
                             server.process = None
                             await self.bot.audit("Server killed due to a hung state.", server=server)
