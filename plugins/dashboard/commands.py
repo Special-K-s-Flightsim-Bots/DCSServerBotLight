@@ -2,6 +2,7 @@ import asyncio
 import logging
 import logging.handlers
 import math
+import os
 import platform
 import re
 from core import DCSServerBot, Plugin, utils
