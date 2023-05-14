@@ -268,11 +268,15 @@ class Mission(Plugin):
 
         embed = discord.Embed(title=f"{server.display_name}", colour=discord.Colour.blue())
         embed.description = "Load / reload missions."
-        embed.add_field(name="Mission Name", value=server.current_mission.display_name)
-        embed.add_field(name="# Players", value=str(len(server.get_active_players())))
-        embed.add_field(name='▬' * 27, value='_ _', inline=False)
+        if server.current_mission:
+            embed.add_field(name="Mission Name", value=server.current_mission.display_name)
+            embed.add_field(name="# Players", value=str(len(server.get_active_players())))
+            embed.add_field(name='▬' * 27, value='_ _', inline=False)
         view = self.LoadView(ctx, placeholder="Select a mission to load",
-                             options=[SelectOption(label=os.path.basename(x)[:-4]) for x in list(set(missions))[:25]])
+                             options=[
+                                 SelectOption(label=os.path.basename(x)[:-4])
+                                 for x in sorted(set(missions), key=lambda x: x.lower())[:25]
+                             ])
         msg = await ctx.send(embed=embed, view=view)
         try:
             if await view.wait():
