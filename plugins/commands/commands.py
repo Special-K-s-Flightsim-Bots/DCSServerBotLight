@@ -16,7 +16,8 @@ class Commands(Plugin):
     def cog_unload(self):
         self._unregister_commands()
 
-    async def execute(self, ctx: commands.Context, config: dict, **kwargs) -> Optional[dict]:
+    @staticmethod
+    async def execute(ctx: commands.Context, config: dict, **kwargs) -> Optional[dict]:
         cmd: list[str] = [config['cmd']]
         if 'args' in config:
             cmd.extend([utils.format_string(x, **kwargs) for x in shlex.split(config['args'])])
@@ -122,6 +123,7 @@ class Commands(Plugin):
                 await ctx.send(data[0]['value'])
 
     def register_commands(self):
+        prefix = self.bot.config['BOT']['COMMAND_PREFIX']
         for cmd in self.locals['commands']:
             try:
                 checks = []
@@ -133,13 +135,14 @@ class Commands(Plugin):
                 params: dict[str, commands.Parameter] = dict()
                 if 'params' in cmd:
                     for name in cmd['params']:
-                        params[name] = commands.Parameter(name, commands.Parameter.POSITIONAL_OR_KEYWORD, annotation=str)
+                        params[name] = commands.Parameter(name, commands.Parameter.POSITIONAL_OR_KEYWORD,
+                                                          annotation=str)
                     c.params = params
                 self.bot.add_command(c)
                 self.commands[cmd['name']] = cmd
-                self.log.info(f"  - Custom command \"{self.bot.config['BOT']['COMMAND_PREFIX']}{cmd['name']}\" registered.")
+                self.log.info(f"  - Custom command \"{prefix}{cmd['name']}\" registered.")
             except commands.CommandRegistrationError as ex:
-                self.log.info(f"  - Custom command \"{self.bot.config['BOT']['COMMAND_PREFIX']}{cmd['name']}\" NOT registered: {ex}")
+                self.log.info(f"  - Custom command \"{prefix}{cmd['name']}\" NOT registered: {ex}")
 
     def _unregister_commands(self):
         for cmd in self.commands.keys():
