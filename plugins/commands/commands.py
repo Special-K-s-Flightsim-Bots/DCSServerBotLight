@@ -61,7 +61,7 @@ class Commands(Plugin):
                 ret = []
                 for server in self.bot.servers.values():
                     if server.status != Status.SHUTDOWN:
-                        ret.append(server.sendtoDCS(config))
+                        ret.append(await server.sendtoDCSSync(config))
                 return ret
         elif 'sync' not in config:
             if 'server' in kwargs:
@@ -107,7 +107,10 @@ class Commands(Plugin):
                     data.extend(await self.event(ctx, seq['event'], **kwargs))
         if 'report' in config:
             if data:
-                kwargs.update(data)
+                if len(data) == 1:
+                    kwargs.update(data[0])
+                else:
+                    self.log.warn(f"Command {ctx.command.name} failed due to multiple return values.")
             report = Report(self.bot, self.plugin_name, config['report'])
             env = await report.render(**kwargs)
             await ctx.send(embed=env.embed)
