@@ -1,10 +1,11 @@
 import aiohttp
 import asyncio
+import certifi
 import discord
 import os
 import platform
 import shutil
-
+import ssl
 from core import Plugin, DCSServerBot, utils, TEventListener, Status, DBConnection
 from discord.ext import commands, tasks
 from typing import Type, Any
@@ -23,8 +24,10 @@ class CloudHandlerAgent(Plugin):
         }
         if 'token' in self.config:
             headers['Authorization'] = f"Bearer {self.config['token']}"
-
-        self.session = aiohttp.ClientSession(raise_for_status=True, headers=headers)
+        self.session = aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=ssl.create_default_context(cafile=certifi.where())),
+            raise_for_status=True, headers=headers
+        )
         self.base_url = f"{self.config['protocol']}://{self.config['host']}:{self.config['port']}"
         self.client = {
             "guild_id": self.bot.guilds[0].id,
