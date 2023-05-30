@@ -150,14 +150,16 @@ e) __REPORTS__ Section (Optional)
 
 f) __DCS Section__
 
-| Parameter                        | Description                                                                                                                                   |
-|----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| DCS_INSTALLATION                 | The installation directory of DCS World.                                                                                                      |
-| AUTOUPDATE                       | If true, your DCS server will be kept up-to-date automatically by the bot (default=false).                                                    |
-| SERVER_USER                      | The username to display as user no. 1 in the server (aka "Observer")                                                                          |
-| MAX_HUNG_MINUTES                 | The maximum amount in minutes the server is allowed to not respond to the bot until considered dead (default = 3). Set it to 0 to disable it. |
-| MESSAGE_PLAYER_USERNAME          | Message that a user gets when using line-feeds or carriage-returns in their names.                                                            |
-| MESSAGE_PLAYER_DEFAULT_USERNAME  | Message that a user gets when being rejected because of a default player name (Player, Spieler, etc.).                                        |                                                                                                                                               |
+| Parameter                       | Description                                                                                                                                   |
+|---------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| DCS_INSTALLATION                | The installation directory of DCS World.                                                                                                      |
+| AUTOUPDATE                      | If true, your DCS server will be kept up-to-date automatically by the bot (default=false).                                                    |
+| SERVER_USER                     | The username to display as user no. 1 in the server (aka "Observer")                                                                          |
+| MAX_HUNG_MINUTES                | The maximum amount in minutes the server is allowed to not respond to the bot until considered dead (default = 3). Set it to 0 to disable it. |
+| MESSAGE_PLAYER_USERNAME         | Message that a user gets when using line-feeds or carriage-returns in their names.                                                            |
+| MESSAGE_PLAYER_DEFAULT_USERNAME | Message that a user gets when being rejected because of a default player name (Player, Spieler, etc.).                                        |                                                                                                                                               |
+| MESSAGE_AFK                     | Message for players that are kicked because of being AFK.                                                                                     |
+| MESSAGE_SLOT_SPAMMING           | Message for players that got kicked because of slot spamming.                                                                                 |
 
 g) __Server Specific Sections__
 
