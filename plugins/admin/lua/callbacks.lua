@@ -5,11 +5,11 @@ local default_names = {
     'Player',
     'Joueur',
     'Spieler',
-    '?????',
+    'Игрок',
     'Jugador',
-    '??',
-    'Hr�c',
-    '????'
+    '玩家',
+    'Hráč',
+    '플레이어'
 }
 
 local function locate(table, value)
