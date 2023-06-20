@@ -122,7 +122,7 @@ class MissionEventListener(EventListener):
     @event(name="sendMessage")
     async def sendMessage(self, server: Server, data: dict) -> None:
         if int(data['channel']) == -1:
-            channel = server.get_channel(Channel.CHAT)
+            channel = server.get_channel(Channel.EVENTS)
         else:
             channel = self.bot.get_channel(int(data['channel']))
         if channel:
@@ -139,18 +139,18 @@ class MissionEventListener(EventListener):
             return
         else:
             if int(data['channel']) == -1:
-                channel = server.get_channel(Channel.CHAT)
+                channel = server.get_channel(Channel.EVENTS)
             else:
                 channel = self.bot.get_channel(int(data['channel']))
             if channel:
                 await channel.send(embed=embed)
 
-    def send_chat_message(self, server: Server, message: str) -> None:
-        chat_channel = server.get_channel(Channel.CHAT)
-        if chat_channel:
-            if chat_channel not in self.queue:
-                self.queue[chat_channel] = Queue()
-            self.queue[chat_channel].put(message)
+    def send_dcs_event(self, server: Server, message: str) -> None:
+        events_channel = server.get_channel(Channel.EVENTS)
+        if events_channel:
+            if events_channel not in self.queue:
+                self.queue[events_channel] = Queue()
+            self.queue[events_channel].put(message)
 
     def display_mission_embed(self, server: Server):
         self.mission_embeds[server.name] = True
@@ -179,11 +179,12 @@ class MissionEventListener(EventListener):
             server.current_mission = DataObjectFactory().new(Mission.__name__, bot=self.bot, server=server,
                                                              map=data['current_map'], name=data['current_mission'])
 
-        server.status = Status.PAUSED if data['pause'] is True else Status.RUNNING
-        server.current_mission.update(data)
         if 'players' not in data:
             data['players'] = []
             server.status = Status.STOPPED
+        else:
+            server.status = Status.PAUSED if data['pause'] is True else Status.RUNNING
+        server.current_mission.update(data)
         server.afk.clear()
         for p in data['players']:
             if p['id'] == 1:
@@ -241,7 +242,7 @@ class MissionEventListener(EventListener):
     async def onPlayerConnect(self, server: Server, data: dict) -> None:
         if data['id'] == 1:
             return
-        self.send_chat_message(server, self.EVENT_TEXTS[Side.SPECTATOR]['connect'].format(data['name']))
+        self.send_dcs_event(server, self.EVENT_TEXTS[Side.SPECTATOR]['connect'].format(data['name']))
         player: Player = server.get_player(ucid=data['ucid'])
         if not player or player.id == 1:
             player: Player = DataObjectFactory().new(Player.__name__, bot=self.bot, server=server, id=data['id'],
@@ -292,12 +293,12 @@ class MissionEventListener(EventListener):
             if Side(data['side']) != Side.SPECTATOR:
                 if player.ucid in server.afk:
                     del server.afk[player.ucid]
-                self.send_chat_message(server, self.EVENT_TEXTS[Side(data['side'])]['change_slot'].format(
+                self.send_dcs_event(server, self.EVENT_TEXTS[Side(data['side'])]['change_slot'].format(
                     player.side.name if player.side != Side.SPECTATOR else 'NEUTRAL',
                     data['name'], Side(data['side']).name, data['unit_type']))
             else:
                 server.afk[player.ucid] = datetime.now()
-                self.send_chat_message(server, self.EVENT_TEXTS[Side.SPECTATOR]['spectators'].format(player.side.name,
+                self.send_dcs_event(server, self.EVENT_TEXTS[Side.SPECTATOR]['spectators'].format(player.side.name,
                                                                                                      data['name']))
         finally:
             if player:
@@ -318,7 +319,7 @@ class MissionEventListener(EventListener):
             if not player:
                 return
             try:
-                self.send_chat_message(server, self.EVENT_TEXTS[player.side]['disconnect'].format(player.name))
+                self.send_dcs_event(server, self.EVENT_TEXTS[player.side]['disconnect'].format(player.name))
             finally:
                 player.active = False
                 if player.ucid in server.afk:
@@ -333,23 +334,24 @@ class MissionEventListener(EventListener):
                 # TODO: remove if issue with Forrestal is fixed
                 return
 #                player2 = None
-            self.send_chat_message(server, self.EVENT_TEXTS[player1.side][data['eventName']].format(
+            self.send_dcs_event(server, self.EVENT_TEXTS[player1.side][data['eventName']].format(
                 'player ' + player1.name, ('player ' + player2.name) if player2 is not None else 'AI',
                 data['arg2'] or 'Cannon/Bomblet'))
         elif data['eventName'] == 'self_kill':
             player = server.get_player(id=data['arg1']) if data['arg1'] != -1 else None
-            self.send_chat_message(server, self.EVENT_TEXTS[player.side][data['eventName']].format(player.name))
+            self.send_dcs_event(server, self.EVENT_TEXTS[player.side][data['eventName']].format(player.name))
         elif data['eventName'] == 'kill':
             # Player is not an AI
             player1 = server.get_player(id=data['arg1']) if data['arg1'] != -1 else None
             player2 = server.get_player(id=data['arg4']) if data['arg4'] != -1 else None
-            self.send_chat_message(server, self.EVENT_TEXTS[Side(data['arg3'])][data['eventName']].format(
+            self.send_dcs_event(server, self.EVENT_TEXTS[Side(data['arg3'])][data['eventName']].format(
                 ('player ' + player1.name) if player1 is not None else 'AI',
                 data['arg2'] or 'SCENERY', Side(data['arg6']).name,
                 ('player ' + player2.name) if player2 is not None else 'AI',
                 data['arg5'] or 'SCENERY', data['arg7'] or 'Cannon/Bomblet'))
-            # report teamkills from players to admins
-            if (player1 is not None) and (data['arg1'] != data['arg4']) and (data['arg3'] == data['arg6']):
+            # report teamkills from players to admins (only on public servers)
+            if server.is_public() and player1 and player2 and data['arg1'] != data['arg4'] \
+                    and data['arg3'] == data['arg6']:
                 name = 'Player ' + player1.display_name
                 await server.get_channel(Channel.ADMIN).send(
                     f'{name} (ucid={player1.ucid}) is killing team members. Please investigate.'
@@ -360,11 +362,11 @@ class MissionEventListener(EventListener):
                 if not player:
                     return
                 if data['eventName'] in ['takeoff', 'landing']:
-                    self.send_chat_message(server, self.EVENT_TEXTS[player.side][data['eventName']].format(
+                    self.send_dcs_event(server, self.EVENT_TEXTS[player.side][data['eventName']].format(
                         player.name, data['arg3'] if len(data['arg3']) > 0 else 'ground'))
                 else:
-                    self.send_chat_message(server,
-                                           self.EVENT_TEXTS[player.side][data['eventName']].format(player.name))
+                    self.send_dcs_event(server,
+                                        self.EVENT_TEXTS[player.side][data['eventName']].format(player.name))
 
     @chat_command(name="atis", usage="<airport>", help="display ATIS information")
     async def atis(self, server: Server, player: Player, params: list[str]):

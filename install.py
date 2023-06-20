@@ -151,7 +151,10 @@ class Install:
             raise MissingParameter('DCS', str(key))
         num_installs = 0
         ports = set(config['BOT']['PORT'])
-        for _, installation in utils.findDCSInstallations():
+        installations = utils.findDCSInstallations()
+        if not installations:
+            raise Exception("No DCS instance found in Saved Games.")
+        for _, installation in installations:
             try:
                 if installation not in config:
                     continue
@@ -168,8 +171,8 @@ class Install:
                         raise InvalidParameter(installation, 'DCS_PORT', 'Ports have to be unique for all servers!')
                     elif config[installation]['DCS_PORT'] in [8088, 10308, 10309]:
                         raise InvalidParameter(installation, 'DCS_PORT',
-                                               "Don't use the port of your DCS server (""10308), webgui_port (8088) or "
-                                               "webrtc_port (""10309)!")
+                                               "Don't use the port of your DCS server (10308), webgui_port (8088) or "
+                                               "webrtc_port (10309)!")
                     ports.add(config[installation]['DCS_PORT'])
                 if not path.exists(os.path.expandvars(config[installation]['DCS_HOME'])):
                     # ignore missing directories in the DCS section, as people might have a serverSettings.lua in their

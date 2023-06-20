@@ -193,6 +193,12 @@ class Server(DataObject):
                 return True
         return False
 
+    def is_public(self) -> bool:
+        if self.settings.get('password'):
+            return False
+        else:
+            return True
+
     def move_to_spectators(self, player: Player, reason: str = 'n/a'):
         self.sendtoDCS({
             "command": "force_player_slot",
@@ -460,7 +466,17 @@ class Server(DataObject):
 
     def get_channel(self, channel: Channel) -> discord.TextChannel:
         if channel not in self._channels:
-            self._channels[channel] = self.bot.get_channel(int(self.bot.config[self.installation][channel.value]))
+            channel_id = self.bot.config[self.installation].get(channel.value)
+            if not channel_id:
+                if channel == Channel.EVENTS:
+                    self._channels[channel] = self.get_channel(Channel.CHAT)            
+                else:
+                    self.log.warn(f"Channel {channel.name} has unknown ID {channel_id}. Please check.")
+                    return None
+            elif int(channel_id) != -1:
+                self._channels[channel] = self.bot.get_channel(int(channel_id))
+            else:
+                return None
         return self._channels[channel]
 
     async def wait_for_status_change(self, status: list[Status], timeout: int = 60) -> None:

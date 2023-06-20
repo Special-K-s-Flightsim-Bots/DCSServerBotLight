@@ -22,3 +22,4 @@ class Channel(Enum):
     STATUS = 'STATUS_CHANNEL'
     ADMIN = 'ADMIN_CHANNEL'
     CHAT = 'CHAT_CHANNEL'
+    EVENTS = 'EVENTS_CHANNEL'

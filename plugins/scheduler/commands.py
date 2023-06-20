@@ -214,16 +214,16 @@ class Scheduler(Plugin):
                 item = 'server'
             else:
                 item = 'mission'
-            while restart_in > 0 and server.is_populated() and not server.maintenance:
+            while restart_in > 0 and server.status == Status.RUNNING and not server.maintenance:
                 for warn_time in warn_times:
                     if warn_time == restart_in:
                         server.sendPopupMessage(warn_text.format(item=item, what=what,
                                                                  when=utils.format_time(warn_time)),
                                                 self.bot.config['BOT']['MESSAGE_TIMEOUT'])
-                        chat_channel = server.get_channel(Channel.CHAT)
-                        if chat_channel:
-                            await chat_channel.send(warn_text.format(item=item, what=what,
-                                                                     when=utils.format_time(warn_time)))
+                        events_channel = server.get_channel(Channel.EVENTS)
+                        if events_channel:
+                            await events_channel.send(warn_text.format(item=item, what=what,
+                                                                       when=utils.format_time(warn_time)))
                 await asyncio.sleep(1)
                 restart_in -= 1
 
@@ -537,7 +537,6 @@ class Scheduler(Plugin):
 
         server: Server = await self.bot.get_server(ctx)
         if server:
-            config = self.get_config(server)
             if server.status in [Status.UNREGISTERED, Status.LOADING]:
                 if params and params[0] == '-force' or \
                         await utils.yn_question(ctx, f"Server is in state {server.status.name}.\n"
