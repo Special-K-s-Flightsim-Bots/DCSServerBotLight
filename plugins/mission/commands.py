@@ -61,6 +61,9 @@ class Mission(Plugin):
                 report = Report(self.bot, self.plugin_name, 'serverStatus.json')
                 env = await report.render(server=server, num_players=num_players)
                 await ctx.send(embed=env.embed)
+            elif server.status == Status.LOADING:
+                await ctx.send('Mission is still loading, please try again in a bit.')
+                return
             else:
                 await ctx.send(f'There is no mission running on server {server.display_name}')
                 return
@@ -484,7 +487,7 @@ class Mission(Plugin):
 
         # check for blocked processes due to window popups
         while True:
-            for title in ["Can't run", "Login Failed", "DCS Login"]:
+            for title in ["Can't run", "Login Failed", "DCS Login", "Authorization failed"]:
                 handle = win32gui.FindWindowEx(None, None, None, title)
                 if handle:
                     _, pid = win32process.GetWindowThreadProcessId(handle)
@@ -499,7 +502,7 @@ class Mission(Plugin):
             if server.status in [Status.UNREGISTERED, Status.SHUTDOWN]:
                 continue
             elif server.status in [Status.LOADING, Status.STOPPED]:
-                if server.process and not server.process.is_running():
+                if server.process is not None and not server.process.is_running():
                     server.status = Status.SHUTDOWN
                     server.process = None
                 continue
@@ -512,7 +515,7 @@ class Mission(Plugin):
             except asyncio.TimeoutError:
                 # check if the server process is still existent
                 max_hung_minutes = int(self.bot.config['DCS']['MAX_HUNG_MINUTES'])
-                if max_hung_minutes > 0 and (server.process and server.process.is_running()):
+                if max_hung_minutes > 0 and (server.process is not None and server.process.is_running()):
                     self.log.warning(f"Server \"{server.name}\" is not responding.")
                     # process might be in a hung state, so try again for a specified amount of times
                     if server.name in self.hung and self.hung[server.name] >= (max_hung_minutes - 1):

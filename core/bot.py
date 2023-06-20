@@ -346,12 +346,20 @@ class DCSServerBot(commands.Bot):
             if server.process:
                 break
         server.dcs_version = data['dcs_version']
-        server.status = Status.STOPPED
+        if data['channel'].startswith('sync-'):
+            if 'players' not in data:
+                server.status = Status.STOPPED
+            elif data['pause']:
+                server.status = Status.PAUSED
+            else:
+                server.status = Status.RUNNING
         # validate server ports
         dcs_ports: dict[int, str] = dict()
         webgui_ports: dict[int, str] = dict()
         webrtc_ports: dict[int, str] = dict()
         for server in self.servers.values():
+            if server.status in [Status.UNREGISTERED, Status.SHUTDOWN]:
+                continue
             dcs_port = server.settings.get('port', 10308)
             if dcs_port in dcs_ports:
                 self.log.error(f'Server "{server.name}" shares its DCS port with server '
@@ -411,6 +419,8 @@ class DCSServerBot(commands.Bot):
                 if server.status == Status.UNREGISTERED:
                     continue
                 channels = [Channel.ADMIN, Channel.STATUS]
+                if int(self.config[server.installation].get(Channel.EVENTS.value, '-1')) != -1:
+                    channels.append(Channel.EVENTS)
                 if int(self.config[server.installation][Channel.CHAT.value]) != -1:
                     channels.append(Channel.CHAT)
                 for channel in channels:

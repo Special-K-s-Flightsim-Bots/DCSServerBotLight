@@ -3,7 +3,6 @@ local base		= _G
 dcsbot 			= base.dcsbot
 
 function dcsbot.sendPopupMessage(to, message, time)
-	env.info('DCSServerBot - Popup Message!')
 	if to == 'all' then
         trigger.action.outText(message, time)
 	elseif to == 'red' then

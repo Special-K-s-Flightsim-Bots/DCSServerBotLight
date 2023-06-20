@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 import zipfile
 from core import utils, Server, DCSServerBot, Status, DBConnection
 from contextlib import closing
@@ -401,5 +402,5 @@ if __name__ == "__main__":
     except (KeyboardInterrupt, asyncio.CancelledError):
         exit(-1)
     except Exception as ex:
-        print(f"{ex.__class__.__name__}: {ex}")
+        traceback.print_exc()
         exit(-1)
