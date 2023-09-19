@@ -44,7 +44,7 @@ class SchedulerListener(EventListener):
                 if self.plugin.is_mission_change(server, config):
                     for ext in server.extensions.values():
                         await ext.beforeMissionLoad()
-                    if 'settings' in config['restart']:
+                    if 'settings' in config:
                         await self.plugin.change_mizfile(server, config)
                     await server.start()
                 message = 'started DCS server'
@@ -56,7 +56,7 @@ class SchedulerListener(EventListener):
                     await server.stop()
                     for ext in server.extensions.values():
                         await ext.beforeMissionLoad()
-                    if 'settings' in config['restart']:
+                    if 'settings' in config:
                         await self.plugin.change_mizfile(server, config)
                     await server.start()
                 else:
@@ -71,7 +71,7 @@ class SchedulerListener(EventListener):
                 await server.stop()
                 for ext in server.extensions.values():
                     await ext.beforeMissionLoad()
-                if 'settings' in config['restart']:
+                if 'settings' in config:
                     await self.plugin.change_mizfile(server, config)
                 await server.start()
             await self.bot.audit(f"{self.plugin_name.title()} rotated to mission "
@@ -106,9 +106,15 @@ class SchedulerListener(EventListener):
             player: Player = server.get_player(id=data['id'])
             player.sendChatMessage("*** Mission is about to be restarted soon! ***")
 
-    @event(name="onPlayerChangeSlot")
-    async def onPlayerChangeSlot(self, server: Server, data: dict) -> None:
-        if not server.is_populated() and server.on_empty:
+#    @event(name="onPlayerChangeSlot")
+#    async def onPlayerChangeSlot(self, server: Server, data: dict) -> None:
+#        if not server.is_populated() and server.on_empty:
+#            self.bot.loop.call_soon(asyncio.create_task, self.process(server, server.on_empty.copy()))
+#            server.on_empty.clear()
+
+    @event(name="onSimulationPause")
+    async def onSimulationPause(self, server: Server, data: dict) -> None:
+        if server.on_empty:
             self.bot.loop.call_soon(asyncio.create_task, self.process(server, server.on_empty.copy()))
             server.on_empty.clear()
 
@@ -132,6 +138,8 @@ class SchedulerListener(EventListener):
 
     @event(name="onMissionLoadEnd")
     async def onMissionLoadEnd(self, server: Server, data: dict) -> None:
+        # invalidate the config cache
+        self.plugin.get_config(server, use_cache=False)
         server.restart_pending = False
         server.on_empty.clear()
         server.on_mission_end.clear()
@@ -150,6 +158,12 @@ class SchedulerListener(EventListener):
         for ext in server.extensions.values():
             if ext.is_running():
                 await ext.shutdown(data)
+
+    @event(name="onPlayerDisconnect")
+    async def onPlayerDisconnect(self, server: Server, data: dict) -> None:
+        for ext in server.extensions.values():
+            if ext.is_running():
+                await ext.onPlayerDisconnect(data)
 
     @event(name="onShutdown")
     async def onShutdown(self, server: Server, data: dict) -> None:

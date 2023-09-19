@@ -23,6 +23,7 @@ class Player(DataObject):
     sub_slot: int = field(compare=False, default=0)
     unit_callsign: str = field(compare=False, default='')
     unit_name: str = field(compare=False, default='')
+    unit_display_name: str = field(compare=False, default='')
     unit_type: str = field(compare=False, default='')
     group_id: int = field(compare=False, default=0)
     group_name: str = field(compare=False, default='')
@@ -73,6 +74,8 @@ class Player(DataObject):
             self.group_name = data['group_name']
         if 'group_id' in data:
             self.group_id = data['group_id']
+        if 'unit_display_name' in data:
+            self.unit_display_name = data['unit_display_name']
 
     def sendChatMessage(self, message: str, sender: str = None):
         self.server.sendtoDCS({
@@ -97,4 +100,11 @@ class Player(DataObject):
             "from": sender,
             "message": message,
             "time": timeout
+        })
+
+    def playSound(self, sound: str):
+        self.server.sendtoDCS({
+            "command": "playSound",
+            "to": self.unit_name,
+            "sound": sound
         })

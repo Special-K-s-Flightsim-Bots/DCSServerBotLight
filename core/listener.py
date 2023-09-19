@@ -69,9 +69,9 @@ class EventListenerMeta(type):
                 if elem in chat_commands:
                     del chat_commands[elem]
                 if isinstance(value, Event):
-                    events[elem] = value
+                    events[value.name] = value
                 elif isinstance(value, ChatCommand):
-                    chat_commands[elem] = value
+                    chat_commands[value.name] = value
         new_cls.__events__ = events
         new_cls.__chat_commands__ = chat_commands
         return new_cls
@@ -123,8 +123,6 @@ class EventListener(metaclass=EventListenerMeta):
         player: Player = server.get_player(id=data['from_id'], active=True)
         command = self.__all_commands__.get(data['subcommand'])
         if not command or not player:
-            return
-        if command.roles and not player.has_discord_roles(command.roles):
             return
         await command(self, server, player, data.get('params'))
 

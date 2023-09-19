@@ -70,9 +70,13 @@ class MissionEventListener(EventListener):
         for channel in self.queue.keys():
             if self.queue[channel].empty():
                 continue
-            messages: set = set()
+            messages: list[str] = []
+            message_old = ''
             while not self.queue[channel].empty():
-                messages.add(self.queue[channel].get())
+                message = self.queue[channel].get()
+                if message != message_old:
+                    messages.append(message)
+                    message_old = message
                 if messages.__sizeof__() > 1900:
                     if not flush:
                         break
@@ -91,6 +95,10 @@ class MissionEventListener(EventListener):
             self.print_queue.change_interval(seconds=10)
         except Exception as ex:
             self.log.debug("Exception in print_queue(): " + str(ex))
+
+    @print_queue.before_loop
+    async def before_check(self):
+        await self.bot.wait_until_ready()
 
     @tasks.loop(seconds=5)
     async def update_player_embed(self):
@@ -114,10 +122,6 @@ class MissionEventListener(EventListener):
                 report = PersistentReport(self.bot, self.plugin_name, 'serverStatus.json', server, 'mission_embed')
                 await report.render(server=server, num_players=num_players)
                 self.mission_embeds[server_name] = False
-
-    @print_queue.before_loop
-    async def before_check(self):
-        await self.bot.wait_until_ready()
 
     @event(name="sendMessage")
     async def sendMessage(self, server: Server, data: dict) -> None:
@@ -165,6 +169,12 @@ class MissionEventListener(EventListener):
             data['command'] = data['subcommand']
             server.sendtoDCS(data)
 
+    def init_mission(self, server: Server, data: dict) -> None:
+        if not server.current_mission:
+            server.current_mission = DataObjectFactory().new(Mission.__name__, bot=self.bot, server=server,
+                                                             map=data['current_map'], name=data['current_mission'])
+        server.current_mission.update(data)
+
     @event(name="registerDCSServer")
     async def registerDCSServer(self, server: Server, data: dict) -> None:
         # the server is starting up
@@ -175,16 +185,12 @@ class MissionEventListener(EventListener):
             server.status = Status.STOPPED
             return
         # the server was started already, but the bot wasn't
-        if not server.current_mission:
-            server.current_mission = DataObjectFactory().new(Mission.__name__, bot=self.bot, server=server,
-                                                             map=data['current_map'], name=data['current_mission'])
-
+        self.init_mission(server, data)
         if 'players' not in data:
             data['players'] = []
             server.status = Status.STOPPED
         else:
             server.status = Status.PAUSED if data['pause'] is True else Status.RUNNING
-        server.current_mission.update(data)
         server.afk.clear()
         for p in data['players']:
             if p['id'] == 1:
@@ -193,8 +199,9 @@ class MissionEventListener(EventListener):
                                                      name=p['name'], active=p['active'], side=Side(p['side']),
                                                      ucid=p['ucid'], slot=int(p['slot']), sub_slot=p['sub_slot'],
                                                      unit_callsign=p['unit_callsign'], unit_name=p['unit_name'],
-                                                     unit_type=p['unit_type'], group_id=p['group_id'],
-                                                     group_name=p['group_name'], banned=False)
+                                                     unit_type=p['unit_type'],
+                                                     unit_display_name=p.get('unit_display_name', p['unit_type']),
+                                                     group_id=p['group_id'], group_name=p['group_name'], banned=False)
             server.add_player(player)
             if Side(p['side']) == Side.SPECTATOR:
                 server.afk[player.ucid] = datetime.now()
@@ -215,7 +222,7 @@ class MissionEventListener(EventListener):
 
     @event(name="onMissionLoadEnd")
     async def onMissionLoadEnd(self, server: Server, data: dict) -> None:
-        server.current_mission.update(data)
+        self.init_mission(server, data)
         self.display_mission_embed(server)
 
     @event(name="onSimulationStart")
@@ -299,7 +306,7 @@ class MissionEventListener(EventListener):
             else:
                 server.afk[player.ucid] = datetime.now()
                 self.send_dcs_event(server, self.EVENT_TEXTS[Side.SPECTATOR]['spectators'].format(player.side.name,
-                                                                                                     data['name']))
+                                                                                                  data['name']))
         finally:
             if player:
                 player.update(data)

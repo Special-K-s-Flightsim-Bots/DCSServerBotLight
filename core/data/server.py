@@ -298,6 +298,12 @@ class Server(DataObject):
             "time": timeout
         })
 
+    def playSound(self, sound: str):
+        self.sendtoDCS({
+            "command": "playSound",
+            "sound": sound
+        })
+
     def rename(self, new_name: str, update_settings: bool = False) -> None:
         # call rename() in all Plugins
         for plugin in self.bot.cogs.values():  # type: Plugin
@@ -464,14 +470,14 @@ class Server(DataObject):
                                    'ON CONFLICT (server_name, embed_name) DO UPDATE SET '
                                    'embed=excluded.embed', (self.name, embed_name, message.id))
 
-    def get_channel(self, channel: Channel) -> discord.TextChannel:
+    def get_channel(self, channel: Channel) -> Optional[discord.TextChannel]:
         if channel not in self._channels:
             channel_id = self.bot.config[self.installation].get(channel.value)
             if not channel_id:
                 if channel == Channel.EVENTS:
                     self._channels[channel] = self.get_channel(Channel.CHAT)            
                 else:
-                    self.log.warn(f"Channel {channel.name} has unknown ID {channel_id}. Please check.")
+                    self.log.warning(f"Channel {channel.name} has unknown ID {channel_id}. Please check.")
                     return None
             elif int(channel_id) != -1:
                 self._channels[channel] = self.bot.get_channel(int(channel_id))
