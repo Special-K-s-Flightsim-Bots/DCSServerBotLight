@@ -64,6 +64,8 @@ class MessageOfTheDay(Plugin):
                 player.sendPopupMessage(message, timeout)
             else:
                 server.sendPopupMessage(message, timeout)
+                if 'sound' in config:
+                    server.playSound(config['sound'])
 
     @commands.command(description='Test MOTD', usage='[-join | -birth | -nudge]', hidden=True)
     @utils.has_roles(['DCS Admin'])

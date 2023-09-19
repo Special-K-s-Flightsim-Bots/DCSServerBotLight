@@ -10,6 +10,8 @@ local mod_dictionary= require('dictionary')
 
 dcsbot.registered = false
 dcsbot.userInfo = dcsbot.userInfo or {}
+dcsbot.red_slots = dcsbot.red_slots or {}
+dcsbot.blue_slots = dcsbot.blue_slots or {}
 
 function dcsbot.loadParams(json)
     log.write('DCSServerBot', log.DEBUG, 'Mission: loadParams(' .. json.plugin ..')')
@@ -123,8 +125,22 @@ function dcsbot.registerDCSServer(json)
             msg.clouds = clouds
         end
         -- slots
-        msg.num_slots_blue = table.getn(DCS.getAvailableSlots('blue'))
-        msg.num_slots_red = table.getn(DCS.getAvailableSlots('red'))
+		num_slots_red = 0
+		dcsbot.red_slots = {}
+		for k,v in pairs(DCS.getAvailableSlots("red")) do
+			dcsbot.red_slots[v.unitId] = v
+			num_slots_red = num_slots_red + 1
+		end
+
+		num_slots_blue = 0
+		dcsbot.blue_slots = {}
+		for k,v in pairs(DCS.getAvailableSlots("blue")) do
+			dcsbot.blue_slots[v.unitId] = v
+			num_slots_blue = num_slots_blue + 1
+		end
+
+		msg.num_slots_blue = num_slots_blue
+		msg.num_slots_red = num_slots_red
         -- players
         plist = net.get_player_list()
         num_players = table.getn(plist)
@@ -134,10 +150,19 @@ function dcsbot.registerDCSServer(json)
                 msg.players[i] = net.get_player_info(plist[i])
                 msg.players[i].unit_type, msg.players[i].slot, msg.players[i].sub_slot = utils.getMulticrewAllParameters(plist[i])
                 msg.players[i].unit_name = DCS.getUnitProperty(msg.players[i].slot, DCS.UNIT_NAME)
+                msg.players[i].unit_display_name = DCS.getUnitTypeAttribute(DCS.getUnitType(msg.players[i].slot), "DisplayName")
                 msg.players[i].group_name = DCS.getUnitProperty(msg.players[i].slot, DCS.UNIT_GROUPNAME)
                 msg.players[i].group_id = DCS.getUnitProperty(msg.players[i].slot, DCS.UNIT_GROUP_MISSION_ID)
                 msg.players[i].unit_callsign = DCS.getUnitProperty(msg.players[i].slot, DCS.UNIT_CALLSIGN)
-                -- server user is never active
+                -- DCS MC bug workaround
+				if msg.players[i].sub_slot > 0 and msg.players[i].side == 0 then
+					if dcsbot.blue_slots[msg.players[i].slot] ~= nil then
+						msg.players[i].side = 2
+					else
+						msg.players[i].side = 1
+					end
+				end
+				-- server user is never active
                 if (msg.players[i].id == 1) then
                     msg.players[i].active = false
                 else
@@ -347,7 +372,16 @@ function dcsbot.sendPopupMessage(json)
 	net.dostring_in('mission', 'a_do_script(' .. utils.basicSerialize('dcsbot.sendPopupMessage("' .. to .. '", ' .. utils.basicSerialize(message) .. ', ' .. tostring(time) ..')') .. ')')
 end
 
+function dcsbot.playSound(json)
+	log.write('DCSServerBot', log.DEBUG, 'Mission: playSound()')
+	to = json.to or 'all'
+	net.dostring_in('mission', 'a_do_script(' .. utils.basicSerialize('dcsbot.playSound("' .. to .. '", ' .. utils.basicSerialize(json.sound) .. ')') .. ')')
+end
+
 function dcsbot.uploadUserRoles(json)
     log.write('DCSServerBot', log.DEBUG, 'Mission: uploadUserRoles()')
-    dcsbot.userInfo[json.ucid].roles = json.roles
+	if dcsbot.userInfo[json.ucid] == nil then
+		dcsbot.userInfo[json.ucid] = {}
+	end
+	dcsbot.userInfo[json.ucid].roles = json.roles
 end

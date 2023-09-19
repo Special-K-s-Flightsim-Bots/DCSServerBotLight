@@ -54,9 +54,10 @@ class Lardoon(Extension):
     def is_running(self) -> bool:
         global process, servers
 
-        if process and process.poll() is None:
+        if process is not None and process.poll() is None:
             return self.server.name in servers
         else:
+            process = None
             return False
 
     @property

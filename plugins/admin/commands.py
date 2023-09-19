@@ -333,7 +333,7 @@ class Agent(Plugin):
 
         class BanView(View):
             @discord.ui.select(placeholder="Select a player to be banned", options=[
-                SelectOption(label=x.display_name,value=str(players.index(x))) for x in players])
+                SelectOption(label=x.display_name, value=str(players.index(x))) for x in players])
             async def callback(self, interaction: Interaction, select: Select):
                 modal = BanModal(players[int(select.values[0])])
                 await interaction.response.send_modal(modal)

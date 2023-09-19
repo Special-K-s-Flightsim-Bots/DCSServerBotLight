@@ -282,10 +282,7 @@ class Mission(Plugin):
                              ])
         msg = await ctx.send(embed=embed, view=view)
         try:
-            if await view.wait():
-                return
-            elif not view.result:
-                await ctx.send('Aborted.')
+            if await view.wait() or not view.result:
                 return
             msg = await msg.edit(suppress=True)
             name = view.result
@@ -313,11 +310,12 @@ class Mission(Plugin):
                             await tmp.delete()
                             await ctx.send(f'Mission {name} loaded.')
                         break
-                await msg.delete()
         except asyncio.TimeoutError:
             await ctx.send(f"Timeout while trying to start mission, check the dcs.log")
             return
         finally:
+            if msg:
+                await msg.delete()
             await ctx.message.delete()
 
     @commands.command(description='Adds a mission to the list', usage='[path]')
@@ -487,7 +485,13 @@ class Mission(Plugin):
 
         # check for blocked processes due to window popups
         while True:
-            for title in ["Can't run", "Login Failed", "DCS Login", "Authorization failed"]:
+            for title in [
+                "Can't run",
+                "Login Failed",
+                "DCS Login",
+                "Authorization failed",
+                "Login session has expired"
+            ]:
                 handle = win32gui.FindWindowEx(None, None, None, title)
                 if handle:
                     _, pid = win32process.GetWindowThreadProcessId(handle)
@@ -502,7 +506,7 @@ class Mission(Plugin):
             if server.status in [Status.UNREGISTERED, Status.SHUTDOWN]:
                 continue
             elif server.status in [Status.LOADING, Status.STOPPED]:
-                if server.process is not None and not server.process.is_running():
+                if server.process and not server.process.is_running():
                     server.status = Status.SHUTDOWN
                     server.process = None
                 continue
@@ -515,7 +519,7 @@ class Mission(Plugin):
             except asyncio.TimeoutError:
                 # check if the server process is still existent
                 max_hung_minutes = int(self.bot.config['DCS']['MAX_HUNG_MINUTES'])
-                if max_hung_minutes > 0 and (server.process is not None and server.process.is_running()):
+                if max_hung_minutes > 0 and (server.process and server.process.is_running()):
                     self.log.warning(f"Server \"{server.name}\" is not responding.")
                     # process might be in a hung state, so try again for a specified amount of times
                     if server.name in self.hung and self.hung[server.name] >= (max_hung_minutes - 1):
@@ -612,7 +616,9 @@ class Mission(Plugin):
             return
         server: Server = await self.bot.get_server(message)
         # only DCS Admin role is allowed to upload missions in the servers admin channel
-        if not server or not utils.check_roles([x.strip() for x in self.bot.config['ROLES']['DCS Admin'].split(',')], message.author):
+        if not server or not utils.check_roles([
+            x.strip() for x in self.bot.config['ROLES']['DCS Admin'].split(',')
+        ], message.author) or server.get_channel(Channel.ADMIN) != message.channel:
             return
         att = message.attachments[0]
         filename = server.missions_dir + os.path.sep + att.filename

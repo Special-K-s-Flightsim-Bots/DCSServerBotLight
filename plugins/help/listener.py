@@ -24,8 +24,6 @@ class HelpListener(EventListener):
         ]
         for listener in self.bot.eventListeners:
             for chat_command in listener.chat_commands:
-                if chat_command.roles and not player.has_discord_roles(chat_command.roles):
-                    continue
                 cmd = f"{prefix}{chat_command.name}"
                 if chat_command.usage:
                     cmd += f" {chat_command.usage}"

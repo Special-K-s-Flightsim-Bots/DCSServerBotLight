@@ -1,11 +1,15 @@
 from __future__ import annotations
 import io
 import luadata
+import math
 import os
 import tempfile
+import random
 import zipfile
+
+from core import utils
 from datetime import datetime
-from typing import Union, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from core import DCSServerBot
@@ -14,12 +18,12 @@ if TYPE_CHECKING:
 class MizFile:
 
     def __init__(self, bot: DCSServerBot, filename: str):
-        self.bot = bot
         self.log = bot.log
         self.filename = filename
         self.mission = dict()
         self.options = dict()
         self._load()
+        self._files: list[str] = list()
 
     def _load(self):
         with zipfile.ZipFile(self.filename, 'r') as miz:
@@ -44,8 +48,10 @@ class MizFile:
                     elif item.filename == 'options':
                         zout.writestr(item, "options = " + luadata.serialize(self.options, 'utf-8', indent='\t',
                                                                              indent_level=0))
-                    else:
+                    elif os.path.basename(item.filename) not in [os.path.basename(x) for x in self._files]:
                         zout.writestr(item, zin.read(item.filename))
+                for file in self._files:
+                    zout.write(file, f'l10n/DEFAULT/{os.path.basename(file)}')
         try:
             os.remove(self.filename)
             os.rename(tmpname, self.filename)
@@ -233,3 +239,45 @@ class MizFile:
             self.options['difficulty'] = values
         else:
             self.options['difficulty'] |= values
+
+    @property
+    def files(self) -> list:
+        return self._files
+
+    @files.setter
+    def files(self, files: list[str]):
+        self._files = files
+
+    def modify(self, config: Union[list, dict]) -> None:
+        def process_element(reference: dict, where: Optional[dict] = None):
+            if 'select' in config:
+                if debug:
+                    print("Processing SELECT ...")
+                if config['select'].startswith('/'):
+                    element = next(utils.for_each(self.mission, config['select'][1:].split('/'), debug=debug))
+                else:
+                    element = next(utils.for_each(reference, config['select'].split('/'), debug=debug))
+            else:
+                element = reference
+            for _what, _with in config['replace'].items():
+                if isinstance(_with, dict):
+                    for key, value in _with.items():
+                        if utils.evaluate(key, **element, reference=reference, where=where):
+                            element[_what] = utils.evaluate(value, **element, reference=reference, where=where)
+                            break
+                else:
+                    element[_what] = utils.evaluate(_with, **element, reference=reference, where=where)
+
+        if isinstance(config, list):
+            for cfg in config:
+                self.modify(cfg)
+            return
+        debug = config.get('debug', False)
+        for reference in utils.for_each(self.mission, config['for-each'].split('/'), debug=debug):
+            if 'where' in config:
+                if debug:
+                    print("Processing WHERE ...")
+                for where in utils.for_each(reference, config['where'].split('/'), debug=debug):
+                    process_element(reference, where)
+            else:
+                process_element(reference)

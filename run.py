@@ -293,7 +293,7 @@ class Main:
                         await ctx.send('Server has been renamed.')
                         await self.bot.audit('renamed DCS server "{}" to "{}".'.format(utils.escape_string(old_name),
                                                                                        utils.escape_string(new_name)),
-                            user=ctx.message.author)
+                                             user=ctx.message.author)
                 else:
                     await ctx.send(f'Please stop server "{server.display_name}" before renaming!')
 
