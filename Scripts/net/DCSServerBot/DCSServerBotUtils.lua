@@ -111,6 +111,8 @@ function getMulticrewAllParameters(PlayerId)
 					_master_slot = tonumber(string.sub(_player_slot, 0 , _t_start -1 ))
 					_sub_slot = tonumber(string.sub(_player_slot, _t_start + 1, _t_end ))
 				end
+			else
+				_master_slot = tonumber(_player_slot)
 			end
 			_master_type = DCS.getUnitType(_master_slot)
 

@@ -16,61 +16,58 @@ local socket 	= require("socket")
 
 local dcsbotgui = {}
 
-function dcsbotgui.onSimulationFrame()
-	-- general idea from HypeMan
-	if not dcsbotgui.UDPRecvSocket then
-		local host, port = config.DCS_HOST, config.DCS_PORT
-		local ip = socket.dns.toip(host)
-		dcsbotgui.UDPRecvSocket = socket.udp()
-		dcsbotgui.UDPRecvSocket:setsockname(ip, port)
-		dcsbotgui.UDPRecvSocket:settimeout(0.0001)
-	end
+local function createSimulationFrameHandler()
+    local host, port = config.DCS_HOST, config.DCS_PORT
+    local ip = socket.dns.toip(host)
+    local UDPRecvSocket = socket.udp()
+    UDPRecvSocket:setsockname(ip, port)
+    UDPRecvSocket:settimeout(0.0001)
+    UDPRecvSocket:setoption('reuseaddr', true)
 
-	local msg, err
-	repeat
-		msg, err = dcsbotgui.UDPRecvSocket:receive()
-		if not err then
-			json = JSON:decode(msg)
-			if dcsbot[json.command] ~= nil then
-				dcsbot[json.command](json)
-			end
-		end
-	until err
+    return function()
+        local msg, err
+        repeat
+            msg, err = UDPRecvSocket:receive()
+            if not err then
+                local decoded = JSON:decode(msg)
+                local commandFunc = dcsbot[decoded.command]
+                if commandFunc then
+                    commandFunc(decoded)
+                end
+            end
+        until err
+    end
+end
+
+dcsbotgui.onSimulationFrame = createSimulationFrameHandler()
+
+local function loadFile(path, name, plugin, env)
+    if (lfs.attributes(path)) then
+        local u, err = loadfile(path)
+        if u then
+            setfenv(u, env)
+            local ok, err = pcall(u)
+            if ok then
+                print('Loaded '..name..' script for plugin '..plugin)
+            else
+                print('Failed to load '..name..' script for plugin '..plugin..': '..err)
+            end
+        else
+            print('Failed to load '..name..' script for plugin '..plugin..': '..err)
+        end
+    end
 end
 
 local function loadPlugin(plugin)
-	local env = {}
-	setmetatable(env, { __index = _G })
-	path = lfs.writedir() .. 'Scripts/net/DCSServerBot/' .. plugin .. '/commands.lua'
-	if (lfs.attributes(path)) then
-		local u, err = loadfile(path)
-		if u then
-			setfenv(u, env)
-			local ok, err = pcall(u)
-			if ok then
-				print('Loaded command script for plugin '..plugin)
-			else
-				print('Failed to load command script for plugin '..plugin..': '..err)
-			end
-		else
-			print('Failed to load command script for plugin '..plugin..': '..err)
-		end
-	end
-	path = lfs.writedir() .. 'Scripts/net/DCSServerBot/' .. plugin .. '/callbacks.lua'
-	if (lfs.attributes(path)) then
-		local u, err = loadfile(path)
-		if u then
-			setfenv(u, env)
-			local ok, err = pcall(u)
-			if ok then
-				print('Loaded hook script for plugin '..plugin)
-			else
-				print('Failed to load hook script for plugin '..plugin..': '..err)
-			end
-		else
-			print('Failed to load hook script for plugin '..plugin..': '..err)
-		end
-	end
+    local env = {}
+    setmetatable(env, { __index = _G })
+
+    local base_path = lfs.writedir() .. 'Scripts/net/DCSServerBot/' .. plugin
+    local command_path = base_path .. '/commands.lua'
+    local hook_path = base_path .. '/callbacks.lua'
+
+    loadFile(command_path, "command", plugin, env)
+    loadFile(hook_path, "hook", plugin, env)
 end
 
 if DCS.isServer() then

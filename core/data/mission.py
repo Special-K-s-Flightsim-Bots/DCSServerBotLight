@@ -1,5 +1,8 @@
 from __future__ import annotations
+
 import asyncio
+import os
+
 from core.data.dataobject import DataObject, DataObjectFactory
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -49,7 +52,7 @@ class Mission(DataObject):
         # wait until we are running again
         try:
             await self.server.wait_for_status_change([Status.RUNNING, Status.PAUSED], timeout)
-        except asyncio.TimeoutError:
+        except (TimeoutError, asyncio.TimeoutError):
             self.log.debug(f'Trying to force start server "{self.server.name}" due to DCS bug.')
             await self.server.start()
 
@@ -65,7 +68,7 @@ class Mission(DataObject):
         if 'real_time' in data:
             self.real_time = data['real_time']
         if 'filename' in data:
-            self.filename = data['filename']
+            self.filename = os.path.normpath(data['filename'])
         if 'num_slots_blue' in data:
             self.num_slots_blue = data['num_slots_blue']
         if 'num_slots_red' in data:

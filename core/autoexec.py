@@ -1,5 +1,7 @@
+import os
 import re
 import shutil
+
 from dataclasses import dataclass, field
 from os import path
 from typing import Any
@@ -17,7 +19,7 @@ class Autoexec:
             return
         exp = re.compile('(?P<key>.*)=(?P<value>.*)')
         mydict = dict()
-        with open(file, 'r') as cfg:
+        with open(file, mode='r', encoding='utf-8') as cfg:
             for line in [x.strip() for x in cfg.readlines()]:
                 if line.startswith('if ') or line.startswith('--'):
                     continue
@@ -29,7 +31,7 @@ class Autoexec:
                     value = self.parse(match.group('value').strip())
                     if '.' in key:
                         keys = key.split('.')
-                        if keys[0] not in mydict:
+                        if keys[0] not in mydict or not isinstance(keys[0], dict):
                             mydict[keys[0]] = dict()
                         if len(keys) == 3:
                             if keys[1] not in mydict[keys[0]]:
@@ -90,7 +92,8 @@ class Autoexec:
         outfile = path.expandvars(self.bot.config[self.installation]['DCS_HOME']) + r'\Config\autoexec.cfg'
         if path.exists(outfile):
             shutil.copy(outfile, outfile + '.bak')
-        with open(outfile, 'w') as outcfg:
+        os.makedirs(os.path.dirname(outfile), exist_ok=True)
+        with open(outfile, mode='w', encoding='utf-8') as outcfg:
             for key, value in self.values.items():
                 if key == 'log':
                     outcfg.write(f"{key}.{value}\n")
