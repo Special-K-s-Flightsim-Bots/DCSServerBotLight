@@ -154,10 +154,7 @@ class Server(DataObject):
 
     def get_player(self, **kwargs) -> Optional[Player]:
         if 'id' in kwargs:
-            if kwargs['id'] in self.players:
-                return self.players[kwargs['id']]
-            else:
-                return None
+            return self.players.get(kwargs['id'])
         for player in self.players.values():
             if player.id == 1:
                 continue
@@ -170,11 +167,7 @@ class Server(DataObject):
         return None
 
     def get_active_players(self) -> list[Player]:
-        retval = []
-        for player in self.players.values():
-            if player.active:
-                retval.append(player)
-        return retval
+        return [x for x in self.players.values() if x.active]
 
     def get_crew_members(self, pilot: Player):
         members = []
@@ -262,7 +255,7 @@ class Server(DataObject):
     def sendtoDCS(self, message: dict):
         # As Lua does not support large numbers, convert them to strings
         for key, value in message.items():
-            if type(value) == int:
+            if isinstance(value, int):
                 message[key] = str(value)
         msg = json.dumps(message)
         self.log.debug(f"HOST->{self.name}: {msg}")
