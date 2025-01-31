@@ -1,4 +1,12 @@
 # Welcome to DCSServerBotLight!
+
+> [!IMPORTANT]
+> DCSServerBotLight is **NOT** maintained anymore!<p> 
+> It does not support the latest add-ons to DCS World, nor does it get any update for missing / changed functionality 
+> in DCS World.<br>
+> Please use the version at https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot instead, which is under full 
+> maintenance and development.
+
 This is a simpler solution of the full-fledged [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot),
 that supports server and mission administration, display of mission details and players and some other nice features
 that you see below.</br>
