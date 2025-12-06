@@ -73,7 +73,7 @@ class SRS(Extension):
     async def startup(self) -> bool:
         await super().startup()
         if 'autostart' not in self.config or self.config['autostart']:
-            self.log.debug(r'Launching SRS server with: "{}\SR-Server.exe" -cfg="{}"'.format(
+            self.log.debug(r'Launching SRS server with: "{}\SRS-Server.exe" -cfg="{}"'.format(
                 os.path.expandvars(self.config['installation']), os.path.expandvars(self.config['config'])))
             if self.bot.config.getboolean(self.server.installation, 'START_MINIMIZED'):
                 info = subprocess.STARTUPINFO()
@@ -82,8 +82,9 @@ class SRS(Extension):
             else:
                 info = None
             self.process = subprocess.Popen(
-                ['SR-Server.exe', '-cfg={}'.format(os.path.expandvars(self.config['config']))],
-                executable=os.path.expandvars(self.config['installation']) + r'\SR-Server.exe', startupinfo=info)
+                ['SRS-Server.exe', '-cfg={}'.format(os.path.expandvars(self.config['config']))],
+                executable=os.path.expandvars(os.path.join(self.config['installation'], 'server', 'SRS-Server.exe')),
+                startupinfo=info)
         return self.is_running()
 
     async def shutdown(self, data: dict):
@@ -103,7 +104,7 @@ class SRS(Extension):
     @property
     def version(self) -> str:
         info = win32api.GetFileVersionInfo(
-            os.path.expandvars(self.config['installation']) + r'\SR-Server.exe', '\\')
+            os.path.expandvars(os.path.join(self.config['installation'], 'server', 'SRS-Server.exe')), '\\')
         version = "%d.%d.%d.%d" % (info['FileVersionMS'] / 65536,
                                    info['FileVersionMS'] % 65536,
                                    info['FileVersionLS'] / 65536,

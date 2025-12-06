@@ -1,7 +1,7 @@
 # Welcome to DCSServerBotLight!
 
 > [!IMPORTANT]
-> DCSServerBotLight is **NOT** maintained anymore!<p> 
+> DCSServerBotLight is **NOT** maintained anymore! <p> 
 > It does not support the latest add-ons to DCS World, nor does it get any update for missing / changed functionality 
 > in DCS World.<br>
 > Please use the version at https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot instead, which is under full 
@@ -11,18 +11,18 @@ This is a simpler solution of the full-fledged [DCSServerBot](https://github.com
 that supports server and mission administration, display of mission details and players and some other nice features
 that you see below.</br>
 DCSServerBotLight does not need a Postgres database, so it is much easier to install and setup than the original solution.
-If you want to use statistics, point based credit systems, punishment and slotblocking, you might want to look into the
+If you want to use statistics, point-based credit systems, punishment and slotblocking, you might want to look into the
 full solution instead.
 
 This documentation will show you the main features, how to install and configure the bot. Please check out the linked
 plugin descriptions for each plugin.
 
-First let's see, what it can do for you (installation instructions below)!
+First, let's see what it can do for you (installation instructions [below](#installation))!
 
 ---
 ## Plugins
 DCSServerBotLight has a modular architecture with plugins that support specific Discord commands or allow events from 
-connected DCS servers to be processed. It comes with a set of plugins already, but you can add your own, if you wish.
+connected DCS servers to be processed. It comes with a set of plugins already, but you can add your own if you wish.
 
 ### General Administrative Commands
 These commands can be used to administrate the bot itself.
@@ -47,7 +47,8 @@ These commands can be used to administrate the bot itself.
 | Backup       | Backup your servers and bot configuration to a cloud drive.          | yes      |              | [README](./plugins/backup/README.md)       |
 
 ### In case you want to write your own plugin ...
-There is a sample in the plugins/samples subdirectory, that will guide you through the steps. If you want your plugin to be added to the distribution, just contact me via the contact details below.
+There is a sample in the plugins/samples subdirectory that will guide you through the steps. 
+If you want your plugin to be added to the distribution, contact me via the contact details below.
 
 ## Extensions
 Many DCS admins use extensions or add-ons like DCS-SRS, Tacview, Lotatc, etc.</br>
@@ -59,7 +60,7 @@ Check out [Extensions](./extensions/README.md) for more info on how to use them.
 
 ### Prerequisites
 You need to have at least [python 3.9](https://www.python.org/downloads/) installed. I have tested it with 3.9 only, 
-newer versions might work but that's on your own risk. The python modules needed are listed in requirements.txt and 
+newer versions might work, but that's at your own risk. The python modules needed are listed in requirements.txt and 
 can be installed with ```pip3 install -r requirements.txt```.</br>
 For autoupdate to work, you have to install [GIT](https://git-scm.com/download/win) and make sure, ```git``` is in your 
 PATH.
@@ -69,7 +70,7 @@ The bot needs a unique Token per installation. This one can be obtained at http:
 Create a "New Application", add a Bot, select Bot from the left menu, give it a nice name and icon, press "Copy" below 
 "Click to Reveal Token". Now your Token is in your clipboard. Paste it in dcsserverbot.ini in your config-directory.
 Both "Privileged Gateway Intents" have to be enabled on that page.<br/>
-To add the bot to your Discord guild, select "OAuth2" from the menu, then "URL Generator", select the "bot" checkbox, 
+To add the bot to your Discord guild, select "OAuth2" from the menu, then "URL Generator", select the "bot" checkbox 
 and then select the following permissions:</br>
 * Manage Channels
 * Send Messages
@@ -80,11 +81,12 @@ and then select the following permissions:</br>
 * Add Reactions
 
 Press "Copy" on the generated URL, paste it into the browser of your choice, select the guild the bot has to be added 
-to - and you're done! For easier access to channel IDs, enable "Developer Mode" in "Advanced Settings" in Discord.
+to — and you're done! 
+For easier access to channel IDs, enable "Developer Mode" in "Advanced Settings" in Discord.
 
 ### Download
 Best is to use ```git clone``` as you then can use the autoupdate functionality of the bot.<br/>
-Otherwise download the latest release version and extract it somewhere on your PC that is running the DCS server(s) and 
+Otherwise download the latest release version and extract it somewhere on your PC running the DCS server(s) and 
 give it write permissions, if needed. 
 
 **Attention:** Make sure that the bots installation directory can only be seen by yourself and is not exposed to anybody 
@@ -93,7 +95,7 @@ outside via www etc.
 ---
 ## Configuration
 The bot configuration is held in **config/dcsserverbot.ini**. See **dcsserverbot.ini.sample** for an example.<br/>
-If you start the bot for the first time, it will generate a basic file for you that you can amend to your needs afterwards.<br/>
+If you start the bot for the first time, it will generate a basic file for you that you can amend to your needs afterward.<br/>
 For some configurations, default values may apply. They are kept in config/default.ini. **DO NOT CHANGE THIS FILE**, 
 just overwrite the settings in your own dcsserverbot.ini, if you want to have them differently.
 
@@ -171,7 +173,7 @@ f) __DCS Section__
 g) __Server Specific Sections__
 
 This section has to be named **exactly** like your Saved Games\<instance> directory. Usual names are DCS.OpenBeta or DCS.openbeta_server.
-If your directory is named DCS instead (stable version), just add these fields to the DCS category above.
+If your directory is named DCS instead (stable version), add these fields to the DCS category above.
 
 | Parameter                  | Description                                                                                                                                                                                |
 |----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -194,10 +196,12 @@ If your directory is named DCS instead (stable version), just add these fields t
 The DCS World integration is done via Hooks. They are being installed automatically into your configured DCS servers by the bot.
 
 ### Desanitization
-DCSServerBotLight desanitizes your MissionScripting environment. That means, it changes entries in {DCS_INSTALLATION}\Scripts\MissionScripting.lua.
-If you use any other method of desanitization, DCSServerBotLight checks, if additional desanitizations are needed and conducts them.
-**To be able to do so, you must change the permissions on the DCS-installation directory. Give the User group write permissions for instance.**
-Your MissionScripting.lua will look like this afterwards:
+DCSServerBotLight desanitizes your MissionScripting environment. 
+That means it changes entries in {DCS_INSTALLATION}\Scripts\MissionScripting.lua.
+If you use any other method of desanitization, DCSServerBotLight checks if additional desanitizations are needed and conducts them.
+**To be able to do so, you must change the permissions on the DCS-installation directory. 
+Give the `User` group write permissions.**
+Your MissionScripting.lua will look like this afterward:
 ```lua
 do
 	sanitizeModule('os')
@@ -210,8 +214,8 @@ end
 ```
 
 ### Custom MissionScripting.lua
-If you want to use a **custom MissionScripting.lua** that has more sanitization (for instance for LotAtc, Moose, 
-OverlordBot or the like) or additional lines to be loaded (for instance for LotAtc, or DCS-gRPC), just place the 
+If you want to use a **custom MissionScripting.lua** that has more sanitization (for instance, for LotAtc, Moose, 
+OverlordBot or the like) or additional lines to be loaded (for instance, for LotAtc, or DCS-gRPC), place the 
 MissionScripting.lua of your choice in the config directory of the bot. It will be replaced on every bot startup then.
 
 ### Discord Configuration
@@ -230,7 +234,7 @@ configuration file. If you want to add multiple groups, separate them by comma (
 To view some sample configurations for the bot or for each configurable plugin, look [here](config/samples/README.md).
 
 ### Additional Security Features
-Players that have no pilot ID (empty) or that share an account with others, will not be able to join your DCS server. 
+Players who have no pilot ID (empty) or that share an account with others will not be able to join your DCS server. 
 This is not configurable, it's a general rule (and a good one in my eyes).
 
 ---
@@ -258,10 +262,10 @@ installation.
 ### Setup Multiple DCS-Servers on a Single Host
 DCSServerBotLight is able to contact DCS-servers at the same machine or over the local network.
 
-To run multiple DCS-servers under control of DCSServerBotLight you just have to make sure that you configure different 
-communication ports. This can be done with the parameter DCS_PORT in DCSServerBotConfig.lua. The default is 6666, you 
-can just increase that for every server (6667, 6668, ...). Don't forget to configure different Discord channels 
-(CHAT_CHANNEL, STATUS_CHANNEL and ADMIN_CHANNEL) for every server, too. To add subsequent servers, just follow the steps 
+To run multiple DCS-servers under control of DCSServerBotLight, you have to make sure that you configure different 
+communication ports. This can be done with the parameter DCS_PORT in DCSServerBotConfig.lua. The default is 6666. 
+You can increase that for every server (6667, 6668, ...). Remember to configure different Discord channels 
+(CHAT_CHANNEL, STATUS_CHANNEL and ADMIN_CHANNEL) for every server, too. To add servers later, follow the steps 
 above, and you're good, unless they are on a different Windows server (see below).
 
 DCSServerBotLight will autodetect all configured DCS servers on the first startup and generate a sample ini file for 
@@ -269,26 +273,28 @@ you already.
 
 ### Setup Multiple DCS-Servers at the Same Location
 To communicate with DCSServerBotLight over the network, you need to change two configurations.
-By default, DCSServerBotLight is configured to be bound to the loopback interface (127.0.0.1) not allowing any external 
-connection to the system. This can be changed in dcsserverbot.ini by using the LAN IP address of the Windows server 
-running DCSServerBotLight instead (NOT your external IP address!).<br/>
+By default, DCSServerBotLight is configured to be bound to the loopback interface (127.0.0.1), 
+not allowing any external connection to the system. 
+This can be changed in dcsserverbot.ini by using the LAN IP address of the Windows server running DCSServerBotLight 
+instead (NOT your external IP address!).<br/>
 
-**Attention:** The scheduler, .startup and .shutdown commands will only work, if the DCS-servers are on the same machine 
+**Attention:** The scheduler, .startup and .shutdown commands will only work if the DCS-servers are on the same machine 
 as the bot. So you need to install a bot instance on every server that you use in your network. 
-Just configure them as agents (_MASTER = false_) and you are good.
+Configure them as agents (_MASTER = false_), and you are good.
 
-### Setup Multiple Servers on Multiple Host at Different Locations
-Works the same as with setting up multiple hosts at the same location. Just configure one bot as MASTER=true and all
-others as MASTER=false, and you are good. DCSServerBotLight will never be able to do MASTER/AGENT handovers, due to the 
-lack of a central database, so you need to make sure that at least one bot is always a master.
+### Setup Multiple Servers on Multiple Hosts at Different Locations
+Works the same as with setting up multiple hosts at the same location. 
+Configure one bot as MASTER=true and all others as MASTER=false, and you are good. 
+DCSServerBotLight will never be able to do MASTER/AGENT handovers, due to the lack of a central database, 
+so you need to make sure that at least one bot is always a master.
 
 ### How to talk to the Bot from inside Missions
-If you plan to create Bot-events from inside a DCS mission, that is possible! Just make sure, you include this line in a trigger:
+If you plan to create Bot-events from inside a DCS mission, that is possible! Make sure you include this line in a trigger:
 ```lua
   dofile(lfs.writedir() .. 'Scripts/net/DCSServerBot/DCSServerBot.lua')
 ```
 _Don't use a Mission Start trigger, as this might clash with other plugins loading stuff into the mission._<br/> 
-After that, you can for instance send chat messages to the bot using
+After that, you can, for instance, send chat messages to the bot using
 ```lua
   dcsbot.sendBotMessage('Hello World', '12345678') -- 12345678 is the ID of the channel, the message should appear, default is the configured chat channel
 ```
@@ -332,5 +338,8 @@ If you like what I do, and you want to support me, you can do that via my [Patre
 
 ---
 ## Credits
-Thanks to the developers of the awesome solutions [HypeMan](https://github.com/robscallsign/HypeMan) and [perun](https://github.com/szporwolik/perun), that gave me the main ideas to this solution.
-I gave my best to mark parts in the code to show where I copied some ideas or even code from you guys, which honestly is just a very small piece. Hope that is ok.
+Thanks to the developers of the awesome solutions [HypeMan](https://github.com/robscallsign/HypeMan) and 
+[perun](https://github.com/szporwolik/perun), that gave me the main ideas for this solution.
+I gave my best to mark parts in the code to show where I copied some ideas or even code from you guys, which honestly 
+is just a tiny piece. 
+Hope that is ok.
